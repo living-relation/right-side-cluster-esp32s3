@@ -1,0 +1,54 @@
+name: Run_2 Firmware Tracker Scan
+
+on:
+  push:
+    branches:
+      - main
+      - feature/Run_2
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run2-tracker-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Run_2 right tracker
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f RUN_2_TRACKER.md
+
+          grep -q "Run_2 Firmware Tracker — Right Cluster" RUN_2_TRACKER.md
+          grep -q "right ESP32-S3, 480 x 480" RUN_2_TRACKER.md
+          grep -q "dumb UART-only display slave" RUN_2_TRACKER.md
+          grep -q "Right cluster owns no CAN" RUN_2_TRACKER.md
+          grep -q "no GPIO controls" RUN_2_TRACKER.md
+          grep -q "no menu logic" RUN_2_TRACKER.md
+          grep -q "no GPS" RUN_2_TRACKER.md
+          grep -q "no lap timing" RUN_2_TRACKER.md
+          grep -q "no analog inputs" RUN_2_TRACKER.md
+          grep -q "Side display UART RX is ESP32-S3 GPIO44 / RXD" RUN_2_TRACKER.md
+          grep -q "Headlight dim state originates at center GPIO47" RUN_2_TRACKER.md
+          grep -q "AFR is banned; lambda only" RUN_2_TRACKER.md
+          grep -q "Boost is sent directly from ECU" RUN_2_TRACKER.md
+
+      - name: Guard against stale right-side ownership assumptions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -RIn --exclude-dir=.git --exclude='*.yml' --exclude='*.yaml' "GPIO18.*RX\|GPIO17.*TX" RUN_2_TRACKER.md; then
+            echo "Stale side-display UART GPIO assumption found in tracker. Use side RXD/GPIO44." >&2
+            exit 1
+          fi
+
+          if grep -RIn --exclude-dir=.git "air-fuel\|Air Fuel\|lap timer\|GPS" RUN_2_TRACKER.md; then
+            echo "Unexpected stale right-side assumption found in tracker." >&2
+            exit 1
+          fi
