@@ -1,81 +1,84 @@
 /**
- * dash_bridge.c — TrackCluster UART encode/decode + CRC-8
+ * dash_bridge.c — TrackCluster Run_2 UART encode/decode + CRC-8
  *
- * Implements the functions declared in center-dash_data.h.
- * Center cluster includes this file to ENCODE frames for TX.
- * Side clusters include their copy to DECODE frames from RX.
- *
- * 32-byte frame layout:
- *   [0]     SOF  = 0xA5
- *   [1]     FRAME_TYPE (0x01=LEFT, 0x02=RIGHT)
- *   [2..3]  sequence (uint16 LE)
- *   [4..29] payload (26 bytes, layout depends on FRAME_TYPE)
- *   [30]    CRC-8 over bytes [1..29], poly 0x07, init 0xFF
- *   [31]    EOF  = 0x5A
+ * Implements the fixed 32-byte bridge protocol declared in right-dash_data.h.
+ * Right display decodes RIGHT frames and remains a dumb renderer of center-owned
+ * state. Encode helpers are retained for ABI/test symmetry.
  */
 
 #include "right-dash_data.h"
 #include <string.h>
 
-/* ── Global dash data instance ─────────────────────────────────────────── */
 volatile dash_data_t dash = {0};
 
-/* ── CRC-8 (poly 0x07, init 0xFF) ─────────────────────────────────────── */
 uint8_t dash_crc8(const uint8_t *data, size_t n) {
     uint8_t c = 0xFF;
     for (size_t i = 0; i < n; i++) {
         c ^= data[i];
-        for (int b = 0; b < 8; b++)
+        for (int b = 0; b < 8; b++) {
             c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x07) : (uint8_t)(c << 1);
+        }
     }
     return c;
 }
 
-/* ── Little-endian helpers ─────────────────────────────────────────────── */
-static inline void put_u16(uint8_t *p, uint16_t v) { p[0] = v & 0xFF; p[1] = v >> 8; }
+static inline void put_u16(uint8_t *p, uint16_t v) { p[0] = (uint8_t)(v & 0xFFu); p[1] = (uint8_t)(v >> 8); }
 static inline void put_i16(uint8_t *p, int16_t v)  { put_u16(p, (uint16_t)v); }
 static inline void put_u32(uint8_t *p, uint32_t v) {
-    p[0] = v & 0xFF; p[1] = (v >> 8) & 0xFF;
-    p[2] = (v >> 16) & 0xFF; p[3] = (v >> 24) & 0xFF;
+    p[0] = (uint8_t)(v & 0xFFu);
+    p[1] = (uint8_t)((v >> 8) & 0xFFu);
+    p[2] = (uint8_t)((v >> 16) & 0xFFu);
+    p[3] = (uint8_t)((v >> 24) & 0xFFu);
 }
 
-static inline uint16_t get_u16(const uint8_t *p) { return p[0] | (p[1] << 8); }
+static inline uint16_t get_u16(const uint8_t *p) { return (uint16_t)(p[0] | ((uint16_t)p[1] << 8)); }
 static inline int16_t  get_i16(const uint8_t *p) { return (int16_t)get_u16(p); }
 static inline uint32_t get_u32(const uint8_t *p) {
-    return p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
+    return (uint32_t)p[0] |
+           ((uint32_t)p[1] << 8) |
+           ((uint32_t)p[2] << 16) |
+           ((uint32_t)p[3] << 24);
 }
 
-/* ── LEFT payload encoder (FRAME_TYPE 0x01, sent on UART1) ─────────────── *
- *
- * Bytes  Field               Encoding
- * 0-1    mph × 10            uint16 LE
- * 2-3    oil_temp × 10       int16  LE
- * 4-5    oil_press × 10      uint16 LE
- * 6-7    fuel_press × 10     uint16 LE
- * 8-9    fuel_level × 10     uint16 LE
- * 10-11  rpm                 uint16 LE
- * 12     gear                int8
- * 13     odo_mode            uint8
- * 14-17  odo × 10            uint32 LE
- * 18-21  trip_active × 10    uint32 LE
- * 22-23  flags               uint16 LE
- * 24-25  reserved            0
- */
+static inline uint16_t clamp_u16_from_float(float value, float scale) {
+    if (value <= 0.0f) return 0u;
+    float scaled = value * scale;
+    if (scaled >= 65535.0f) return 65535u;
+    return (uint16_t)scaled;
+}
+
+static inline int16_t clamp_i16_from_float(float value, float scale) {
+    float scaled = value * scale;
+    if (scaled > 32767.0f) return 32767;
+    if (scaled < -32768.0f) return -32768;
+    return (int16_t)scaled;
+}
+
+static inline uint8_t pack_left_state_byte(const dash_data_t *d) {
+    return (uint8_t)((d->headlight_dim ? 0x01u : 0x00u) |
+                     ((d->ecu_protect_level & 0x03u) << 1) |
+                     (d->ecu_limp_mode ? 0x08u : 0x00u));
+}
+
+static inline void unpack_left_state_byte(uint8_t packed, dash_data_t *d) {
+    d->headlight_dim = (uint8_t)(packed & 0x01u);
+    d->ecu_protect_level = (uint8_t)((packed >> 1) & 0x03u);
+    d->ecu_limp_mode = (uint8_t)((packed >> 3) & 0x01u);
+}
+
 void dash_encode_left(uint8_t out[UART_BRIDGE_FRAME_LEN], const dash_data_t *d, uint16_t seq) {
     memset(out, 0, UART_BRIDGE_FRAME_LEN);
-
     out[0] = UART_BRIDGE_SOF;
     out[1] = UART_BRIDGE_TYPE_LEFT;
     put_u16(&out[2], seq);
 
-    /* Payload at offset 4 */
     uint8_t *p = &out[4];
-    put_u16(&p[0],  (uint16_t)(d->mph * 10.0f));
-    put_i16(&p[2],  (int16_t)(d->oil_temp * 10.0f));
-    put_u16(&p[4],  (uint16_t)(d->oil_press * 10.0f));
-    put_u16(&p[6],  (uint16_t)(d->fuel_press * 10.0f));
-    put_u16(&p[8],  (uint16_t)(d->fuel_level * 10.0f));
-    put_u16(&p[10], (uint16_t)d->rpm);
+    put_u16(&p[0],  clamp_u16_from_float(d->mph, 10.0f));
+    put_i16(&p[2],  clamp_i16_from_float(d->oil_temp, 10.0f));
+    put_u16(&p[4],  clamp_u16_from_float(d->oil_press, 10.0f));
+    put_u16(&p[6],  clamp_u16_from_float(d->fuel_press, 10.0f));
+    put_u16(&p[8],  clamp_u16_from_float(d->fuel_level, 10.0f));
+    put_u16(&p[10], clamp_u16_from_float(d->rpm, 1.0f));
     p[12] = (uint8_t)d->gear;
     p[13] = d->odo_mode;
 
@@ -83,55 +86,45 @@ void dash_encode_left(uint8_t out[UART_BRIDGE_FRAME_LEN], const dash_data_t *d, 
     put_u32(&p[14], (uint32_t)(d->odo * 10.0f));
     put_u32(&p[18], (uint32_t)(active_trip * 10.0f));
     put_u16(&p[22], d->flags);
-    /* p[24..25] = reserved = 0 (already zeroed) */
+    p[24] = d->display_mode;
+    p[25] = pack_left_state_byte(d);
 
     out[30] = dash_crc8(&out[1], 29);
     out[31] = UART_BRIDGE_EOF;
 }
 
-/* ── RIGHT payload encoder (FRAME_TYPE 0x02, sent on UART2) ────────────── *
- *
- * Bytes  Field               Encoding
- * 0-1    lambda × 1000       uint16 LE
- * 2-3    (boost+30) × 100    uint16 LE (biased so vacuum encodes positive)
- * 4-5    coolant_temp × 10   int16  LE
- * 6-7    ign_adv × 10        int16  LE
- * 8-9    iat × 10            int16  LE
- * 10-11  rpm                 uint16 LE
- * 12-13  flags               uint16 LE
- * 14-25  reserved            0
- */
 void dash_encode_right(uint8_t out[UART_BRIDGE_FRAME_LEN], const dash_data_t *d, uint16_t seq) {
     memset(out, 0, UART_BRIDGE_FRAME_LEN);
-
     out[0] = UART_BRIDGE_SOF;
     out[1] = UART_BRIDGE_TYPE_RIGHT;
     put_u16(&out[2], seq);
 
     uint8_t *p = &out[4];
-    put_u16(&p[0],  (uint16_t)(d->lambda * 1000.0f));
-    put_u16(&p[2],  (uint16_t)((d->boost + 30.0f) * 100.0f));
-    put_i16(&p[4],  (int16_t)(d->coolant_temp * 10.0f));
-    put_i16(&p[6],  (int16_t)(d->ign_adv * 10.0f));
-    put_i16(&p[8],  (int16_t)(d->iat * 10.0f));
-    put_u16(&p[10], (uint16_t)d->rpm);
+    put_u16(&p[0],  clamp_u16_from_float(d->lambda, 1000.0f));
+    put_u16(&p[2],  clamp_u16_from_float(d->boost + 30.0f, 100.0f));
+    put_i16(&p[4],  clamp_i16_from_float(d->coolant_temp, 10.0f));
+    put_i16(&p[6],  clamp_i16_from_float(d->ign_adv, 10.0f));
+    put_i16(&p[8],  clamp_i16_from_float(d->iat, 10.0f));
+    put_u16(&p[10], clamp_u16_from_float(d->rpm, 1.0f));
     put_u16(&p[12], d->flags);
-    /* p[14..25] = reserved = 0 (already zeroed) */
+    p[14] = d->display_mode;
+    p[15] = d->headlight_dim;
+    p[16] = d->boost_menu_index;
+    p[17] = d->tc_menu_index;
+    put_u32(&p[18], d->ecu_protect_flags);
+    p[22] = d->ecu_limp_mode;
+    p[23] = d->ecu_protect_level;
+    p[24] = d->ecu_last_protect_reason;
+    p[25] = (uint8_t)(d->ecu_warning_flags & 0xFFu);
 
     out[30] = dash_crc8(&out[1], 29);
     out[31] = UART_BRIDGE_EOF;
 }
 
-/* ── LEFT payload decoder (for left-side cluster) ──────────────────────── */
 bool dash_decode_left(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, uint16_t *seq_out) {
-    if (in[0] != UART_BRIDGE_SOF || in[31] != UART_BRIDGE_EOF)
-        return false;
-    if (in[1] != UART_BRIDGE_TYPE_LEFT)
-        return false;
-
-    uint8_t crc = dash_crc8(&in[1], 29);
-    if (crc != in[30])
-        return false;
+    if (in[0] != UART_BRIDGE_SOF || in[31] != UART_BRIDGE_EOF) return false;
+    if (in[1] != UART_BRIDGE_TYPE_LEFT) return false;
+    if (dash_crc8(&in[1], 29) != in[30]) return false;
 
     *seq_out = get_u16(&in[2]);
 
@@ -145,38 +138,42 @@ bool dash_decode_left(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, u
     d->gear       = (int8_t)p[12];
     d->odo_mode   = p[13];
     d->odo        = get_u32(&p[14]) * 0.1f;
-    /* trip_active goes into the active trip slot based on odo_mode */
+
     float trip_val = get_u32(&p[18]) * 0.1f;
-    if (d->odo_mode == DASH_TRIP_B)
-        d->trip_b = trip_val;
-    else
-        d->trip_a = trip_val;
+    if (d->odo_mode == DASH_TRIP_B) d->trip_b = trip_val;
+    else d->trip_a = trip_val;
+
     d->flags = get_u16(&p[22]);
+    d->display_mode = p[24];
+    unpack_left_state_byte(p[25], d);
 
     return true;
 }
 
-/* ── RIGHT payload decoder (for right-side cluster) ────────────────────── */
 bool dash_decode_right(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, uint16_t *seq_out) {
-    if (in[0] != UART_BRIDGE_SOF || in[31] != UART_BRIDGE_EOF)
-        return false;
-    if (in[1] != UART_BRIDGE_TYPE_RIGHT)
-        return false;
-
-    uint8_t crc = dash_crc8(&in[1], 29);
-    if (crc != in[30])
-        return false;
+    if (in[0] != UART_BRIDGE_SOF || in[31] != UART_BRIDGE_EOF) return false;
+    if (in[1] != UART_BRIDGE_TYPE_RIGHT) return false;
+    if (dash_crc8(&in[1], 29) != in[30]) return false;
 
     *seq_out = get_u16(&in[2]);
 
     const uint8_t *p = &in[4];
-    d->lambda      = get_u16(&p[0]) * 0.001f;
-    d->boost       = (get_u16(&p[2]) * 0.01f) - 30.0f;
+    d->lambda = get_u16(&p[0]) * 0.001f;
+    d->boost = (get_u16(&p[2]) * 0.01f) - 30.0f;
     d->coolant_temp = get_i16(&p[4]) * 0.1f;
-    d->ign_adv     = get_i16(&p[6]) * 0.1f;
-    d->iat         = get_i16(&p[8]) * 0.1f;
-    d->rpm         = (float)get_u16(&p[10]);
-    d->flags       = get_u16(&p[12]);
+    d->ign_adv = get_i16(&p[6]) * 0.1f;
+    d->iat = get_i16(&p[8]) * 0.1f;
+    d->rpm = (float)get_u16(&p[10]);
+    d->flags = get_u16(&p[12]);
+    d->display_mode = p[14];
+    d->headlight_dim = p[15];
+    d->boost_menu_index = p[16];
+    d->tc_menu_index = p[17];
+    d->ecu_protect_flags = get_u32(&p[18]);
+    d->ecu_limp_mode = p[22];
+    d->ecu_protect_level = p[23];
+    d->ecu_last_protect_reason = p[24];
+    d->ecu_warning_flags = p[25];
 
     return true;
 }
