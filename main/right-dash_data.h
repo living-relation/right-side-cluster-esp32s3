@@ -81,7 +81,7 @@ typedef struct {
     /* Local display flags and ECU/global warning state */
     uint16_t flags;
     uint32_t ecu_protect_flags;
-    uint32_t ecu_warning_flags;
+    uint8_t  ecu_warning_flags;    /* 8-bit non-protect caution/status field transported over UART */
     uint8_t  ecu_limp_mode;
     uint8_t  ecu_protect_level;
     uint8_t  ecu_last_protect_reason;
