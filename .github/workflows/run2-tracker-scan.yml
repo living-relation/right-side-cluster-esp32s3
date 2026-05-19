@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/Run_2
+      - feature/Run_2_firmware_foundation
   pull_request:
     branches:
       - main
@@ -48,7 +49,15 @@ jobs:
             exit 1
           fi
 
-          if grep -RIn --exclude-dir=.git "air-fuel\|Air Fuel\|lap timer\|GPS" RUN_2_TRACKER.md; then
-            echo "Unexpected stale right-side assumption found in tracker." >&2
-            exit 1
+          stale_matches=$(grep -RIn --exclude-dir=.git "air-fuel\|Air Fuel\|lap timer\|GPS" RUN_2_TRACKER.md || true)
+          if [ -n "$stale_matches" ]; then
+            unexpected=$(printf '%s\n' "$stale_matches" \
+              | grep -v "no GPS" \
+              | grep -v "no lap timing" \
+              | grep -v "Remove CAN, analog, GPS, lap timer" || true)
+            if [ -n "$unexpected" ]; then
+              printf '%s\n' "$unexpected" >&2
+              echo "Unexpected stale right-side assumption found in tracker." >&2
+              exit 1
+            fi
           fi
