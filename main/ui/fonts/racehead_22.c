@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 22 px
  * Bpp: 4
- * Opts: --font /tmp/RaceHead_decoded.ttf --bpp 4 --size 22 --format lvgl --symbols  ABCDEFGHIJKLMNOPQRSTUVWXYZ-°% -o /tmp/racehead_22.c --no-compress
+ * Opts: --font RaceHead.ttf --bpp 4 --size 22 --format lvgl --symbols "ABCDEFGHIJKLMNOPQRSTUVWXYZ-°%" -o racehead_22.c --no-compress
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -15,6 +15,10 @@
 #endif
 
 #if RACEHEAD_22
+
+#ifndef LV_ATTRIBUTE_LARGE_CONST
+#define LV_ATTRIBUTE_LARGE_CONST
+#endif
 
 /*-----------------
  *    BITMAPS
