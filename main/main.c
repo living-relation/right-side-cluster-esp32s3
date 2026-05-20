@@ -1,10 +1,5 @@
 /**
  * main.c — TrackCluster RIGHT cluster (ESP32-S3, 480×480)
- *
- * UART consumer only. Receives RIGHT frames (FRAME_TYPE 0x02) from
- * the center cluster at 921600 8N1 on GPIO 18.
- *
- * Displays: Lambda (digital), Boost, ECT, IGN Advance, IAT (bar gauges).
  */
 
 #include <stdio.h>
@@ -31,17 +26,14 @@
 #include "right-dash_data.h"
 #include "right-colors.h"
 
-/* ── UART config ───────────────────────────────────────────────────────── */
 #define UART_PORT       UART_NUM_1
-#define UART_RX_PIN     18          /* GPIO 18 per design spec */
-#define UART_TX_PIN     17          /* GPIO 17 reserved (future) */
+#define UART_RX_PIN     18
+#define UART_TX_PIN     17
 
 static const char *TAG = "RIGHT";
 
-/* Reference the global dash instance from dash_bridge.c */
 extern volatile dash_data_t dash;
 
-/* ── UART init ─────────────────────────────────────────────────────────── */
 static void uart_init(void) {
     uart_config_t cfg = {
         .baud_rate  = UART_BRIDGE_BAUD,
@@ -63,7 +55,6 @@ static void uart_init(void) {
     ESP_LOGI(TAG, "UART initialized (921600 8N1, RX on GPIO %d)", UART_RX_PIN);
 }
 
-/* ── UART RX task ──────────────────────────────────────────────────────── */
 static void uart_rx_task(void *arg) {
     uint8_t buf[UART_BRIDGE_FRAME_LEN];
     int idx = 0;
@@ -96,32 +87,37 @@ static void uart_rx_task(void *arg) {
     }
 }
 
-/* ── Staleness state ───────────────────────────────────────────────────── */
 typedef enum {
     STALE_NORMAL,
     STALE_FADING,
     STALE_NO_ECU,
 } stale_state_t;
 
-static stale_state_t stale_state = STALE_NO_ECU;
-
 static stale_state_t check_staleness(void) {
     uint32_t now = (uint32_t)(esp_timer_get_time() / 1000ULL);
     uint32_t age = now - dash.last_update_ms;
 
-    if (dash.last_update_ms == 0)     return STALE_NO_ECU;
-    if (age <= DASH_STALE_MS)         return STALE_NORMAL;
-    if (age <= DASH_STALE_OFF_MS)     return STALE_FADING;
+    if (dash.last_update_ms == 0) return STALE_NO_ECU;
+    if (age <= DASH_STALE_MS)     return STALE_NORMAL;
+    if (age <= DASH_STALE_OFF_MS) return STALE_FADING;
     return STALE_NO_ECU;
 }
 
-/* ── Paint timer (33 ms = 30 Hz) ───────────────────────────────────────── */
 static void paint_timer_cb(lv_timer_t *t) {
-    stale_state = check_staleness();
+    (void)t;
 
-    if (stale_state == STALE_NO_ECU) {
-        /* TODO Phase 4: show "WAITING FOR ECU…" / "NO ECU" pill */
+    stale_state_t ss = check_staleness();
+
+    if (ss == STALE_NO_ECU) {
+        lv_obj_clear_flag(ui_no_ecu_pill, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(ui_no_ecu_label, "NO ECU");
         return;
+    }
+    if (ss == STALE_FADING) {
+        lv_obj_clear_flag(ui_no_ecu_pill, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(ui_no_ecu_label, "WAITING FOR ECU");
+    } else {
+        lv_obj_add_flag(ui_no_ecu_pill, LV_OBJ_FLAG_HIDDEN);
     }
 
     dash_data_t snap;
@@ -129,24 +125,88 @@ static void paint_timer_cb(lv_timer_t *t) {
     memcpy(&snap, (const void *)&dash, sizeof(dash_data_t));
     portENABLE_INTERRUPTS();
 
-    /* TODO Phase 4: update lambda digital, bar gauges from snap */
-    (void)snap;
+    lv_opa_t content_opa = (ss == STALE_FADING) ? LV_OPA_30 : LV_OPA_COVER;
+    lv_obj_set_style_opa(ui_Screen1, content_opa, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    /* Lambda */
+    char lam_str[8];
+    snprintf(lam_str, sizeof(lam_str), "%.3f", snap.lambda);
+    lv_label_set_text(ui_label_lambda_val, lam_str);
+    lv_color_t lam_c = lambda_color(snap.lambda);
+    lv_obj_set_style_bg_color(ui_lambda_band, lam_c, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_label_lambda_val, lam_c, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    /* Boost */
+    int boost_v = (int)snap.boost;
+    if (boost_v < 0) boost_v = 0;
+    if (boost_v > 35) boost_v = 35;
+    lv_bar_set_value(ui_bar_boost, boost_v, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(ui_bar_boost, boost_color(snap.boost),
+                              LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    char boost_str[8];
+    snprintf(boost_str, sizeof(boost_str), "%.1f", snap.boost);
+    lv_label_set_text(ui_label_boost_val, boost_str);
+
+    /* ECT */
+    int ect_v = (int)snap.coolant_temp;
+    if (ect_v < 100) ect_v = 100;
+    if (ect_v > 300) ect_v = 300;
+    lv_bar_set_value(ui_bar_ect, ect_v, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(ui_bar_ect, ect_color(snap.coolant_temp),
+                              LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    char ect_str[8];
+    snprintf(ect_str, sizeof(ect_str), "%d", (int)snap.coolant_temp);
+    lv_label_set_text(ui_label_ect_val, ect_str);
+
+    /* IGN */
+    int ign_v = (int)snap.ign_adv;
+    if (ign_v < 0) ign_v = 0;
+    if (ign_v > 45) ign_v = 45;
+    lv_bar_set_value(ui_bar_ign, ign_v, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(ui_bar_ign, ign_color(snap.ign_adv),
+                              LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    char ign_str[8];
+    snprintf(ign_str, sizeof(ign_str), "%.1f", snap.ign_adv);
+    lv_label_set_text(ui_label_ign_val, ign_str);
+
+    /* IAT */
+    int iat_v = (int)snap.iat;
+    if (iat_v < 30)  iat_v = 30;
+    if (iat_v > 200) iat_v = 200;
+    lv_bar_set_value(ui_bar_iat, iat_v, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(ui_bar_iat, iat_color(snap.iat),
+                              LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    char iat_str[8];
+    snprintf(iat_str, sizeof(iat_str), "%d", (int)snap.iat);
+    lv_label_set_text(ui_label_iat_val, iat_str);
 }
 
-/* ── Alarm task (20 ms) ────────────────────────────────────────────────── */
 static void alarm_task(void *arg) {
+    (void)arg;
+
     while (1) {
-        /* TODO Phase 4: check lambda/boost/ECT thresholds */
+        uint16_t flags = 0;
+
+        if (dash.lambda < DASH_LAMBDA_RICH_ALARM ||
+            dash.lambda > DASH_LAMBDA_LEAN_ALARM)
+            flags |= DASH_FLAG_LAMBDA_BAD;
+
+        if (dash.boost > DASH_BOOST_OVERBOOST)
+            flags |= DASH_FLAG_OVERBOOST;
+
+        if (dash.coolant_temp > DASH_COOLANT_MAX)
+            flags |= DASH_FLAG_COOLANT_HOT;
+
+        dash.flags = flags;
+
         vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
-/* ── App entry ─────────────────────────────────────────────────────────── */
 void app_main(void) {
     I2C_Init();
     EXIO_Init();
     LCD_Init();
-    /* No touch init — right display has no touch per board spec */
     LVGL_Init();
 
     ui_init();
