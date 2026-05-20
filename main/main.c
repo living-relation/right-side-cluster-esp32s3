@@ -25,6 +25,7 @@
 
 #include "right-dash_data.h"
 #include "right-colors.h"
+#include "dash_sync.h"
 
 #define UART_PORT       UART_NUM_1
 #define UART_RX_PIN     18
@@ -33,6 +34,8 @@
 static const char *TAG = "RIGHT";
 
 extern volatile dash_data_t dash;
+
+portMUX_TYPE g_dash_mux = portMUX_INITIALIZER_UNLOCKED;
 
 static void uart_init(void) {
     uart_config_t cfg = {
@@ -77,9 +80,9 @@ static void uart_rx_task(void *arg) {
             if (dash_decode_right(buf, &tmp, &seq)) {
                 tmp.last_update_ms = (uint32_t)(esp_timer_get_time() / 1000ULL);
 
-                portDISABLE_INTERRUPTS();
+                portENTER_CRITICAL(&g_dash_mux);
                 memcpy((void *)&dash, &tmp, sizeof(dash_data_t));
-                portENABLE_INTERRUPTS();
+                portEXIT_CRITICAL(&g_dash_mux);
             } else {
                 ESP_LOGW(TAG, "CRC/frame fail");
             }
@@ -122,9 +125,9 @@ static void paint_timer_cb(lv_timer_t *t) {
     }
 
     dash_data_t snap;
-    portDISABLE_INTERRUPTS();
+    portENTER_CRITICAL(&g_dash_mux);
     memcpy(&snap, (const void *)&dash, sizeof(dash_data_t));
-    portENABLE_INTERRUPTS();
+    portEXIT_CRITICAL(&g_dash_mux);
 
     lv_opa_t content_opa = (ss == STALE_FADING) ? LV_OPA_30 : LV_OPA_COVER;
     lv_obj_set_style_opa(ui_Screen1, content_opa, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -190,10 +193,10 @@ static void alarm_task(void *arg) {
     (void)arg;
 
     while (1) {
-        portDISABLE_INTERRUPTS();
+        portENTER_CRITICAL(&g_dash_mux);
         dash_data_t snap;
         memcpy(&snap, (const void *)&dash, sizeof(dash_data_t));
-        portENABLE_INTERRUPTS();
+        portEXIT_CRITICAL(&g_dash_mux);
 
         uint16_t flags = 0;
 
@@ -207,9 +210,9 @@ static void alarm_task(void *arg) {
         if (snap.coolant_temp > DASH_COOLANT_MAX)
             flags |= DASH_FLAG_COOLANT_HOT;
 
-        portDISABLE_INTERRUPTS();
+        portENTER_CRITICAL(&g_dash_mux);
         dash.flags = (dash.flags & ~RIGHT_LOCAL_FLAGS) | flags;
-        portENABLE_INTERRUPTS();
+        portEXIT_CRITICAL(&g_dash_mux);
 
         vTaskDelay(pdMS_TO_TICKS(20));
     }
