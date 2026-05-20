@@ -9,17 +9,19 @@ idf_component_register(
             "LVGL_Driver/LVGL_Driver.c"
             "I2C_Driver/I2C_Driver.c"
             "SD_Card/SD_MMC.c"
-            "Buzzer/Buzzer.c"                             
+            "Buzzer/Buzzer.c"
             "ui/ui.c"
             "ui/screens/ui_Screen1.c"
+            "ui/fonts/aerospace_22.c"
+            "ui/fonts/aerospace_56.c"
             "ui/images/ui_black_boot_png.c"
             "ui/boot/boot_screen.c"
 
-      INCLUDE_DIRS 
+      INCLUDE_DIRS
             "./EXIO"
             "./LCD_Driver"
-            "./Touch_Driver" 
-            "./Touch_Driver/esp_lcd_touch"  
+            "./Touch_Driver"
+            "./Touch_Driver/esp_lcd_touch"
             "./LVGL_Driver"
             "./I2C_Driver"
             "./Buzzer"
@@ -33,10 +35,7 @@ idf_component_register(
             fatfs
             vfs
             freertos
-            esp_wifi
             spi_flash
             nvs_flash
-            bt  
-            esp_adc
             lvgl
 )
