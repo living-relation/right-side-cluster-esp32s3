@@ -111,6 +111,7 @@ static void paint_timer_cb(lv_timer_t *t) {
     if (ss == STALE_NO_ECU) {
         lv_obj_clear_flag(ui_no_ecu_pill, LV_OBJ_FLAG_HIDDEN);
         lv_label_set_text(ui_no_ecu_label, "NO ECU");
+        lv_obj_set_style_opa(ui_Screen1, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
         return;
     }
     if (ss == STALE_FADING) {
@@ -127,6 +128,8 @@ static void paint_timer_cb(lv_timer_t *t) {
 
     lv_opa_t content_opa = (ss == STALE_FADING) ? LV_OPA_30 : LV_OPA_COVER;
     lv_obj_set_style_opa(ui_Screen1, content_opa, LV_PART_MAIN | LV_STATE_DEFAULT);
+    if (ss == STALE_FADING)
+        lv_obj_set_style_opa(ui_no_ecu_pill, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     /* Lambda */
     char lam_str[8];
@@ -181,23 +184,32 @@ static void paint_timer_cb(lv_timer_t *t) {
     lv_label_set_text(ui_label_iat_val, iat_str);
 }
 
+#define RIGHT_LOCAL_FLAGS (DASH_FLAG_LAMBDA_BAD | DASH_FLAG_OVERBOOST | DASH_FLAG_COOLANT_HOT)
+
 static void alarm_task(void *arg) {
     (void)arg;
 
     while (1) {
+        portDISABLE_INTERRUPTS();
+        dash_data_t snap;
+        memcpy(&snap, (const void *)&dash, sizeof(dash_data_t));
+        portENABLE_INTERRUPTS();
+
         uint16_t flags = 0;
 
-        if (dash.lambda < DASH_LAMBDA_RICH_ALARM ||
-            dash.lambda > DASH_LAMBDA_LEAN_ALARM)
+        if (snap.lambda < DASH_LAMBDA_RICH_ALARM ||
+            snap.lambda > DASH_LAMBDA_LEAN_ALARM)
             flags |= DASH_FLAG_LAMBDA_BAD;
 
-        if (dash.boost > DASH_BOOST_OVERBOOST)
+        if (snap.boost > DASH_BOOST_OVERBOOST)
             flags |= DASH_FLAG_OVERBOOST;
 
-        if (dash.coolant_temp > DASH_COOLANT_MAX)
+        if (snap.coolant_temp > DASH_COOLANT_MAX)
             flags |= DASH_FLAG_COOLANT_HOT;
 
-        dash.flags = flags;
+        portDISABLE_INTERRUPTS();
+        dash.flags = (dash.flags & ~RIGHT_LOCAL_FLAGS) | flags;
+        portENABLE_INTERRUPTS();
 
         vTaskDelay(pdMS_TO_TICKS(20));
     }

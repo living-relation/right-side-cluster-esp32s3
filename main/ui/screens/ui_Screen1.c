@@ -74,7 +74,9 @@ static lv_obj_t *make_ch_label(lv_obj_t *parent, int x, int y, const char *text)
     lv_obj_set_pos(l, x, y);
     lv_label_set_text(l, text);
     lv_obj_set_style_text_color(l, COLOR_GREY, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(l, &aerospace_22, LV_PART_MAIN | LV_STATE_DEFAULT);
+    /* TODO: replace with &racehead_22 once RaceHead font files arrive;
+     * aerospace_22 only contains digits and '.', so alpha text is LV_FONT_DEFAULT here. */
+    lv_obj_set_style_text_font(l, lv_font_default(), LV_PART_MAIN | LV_STATE_DEFAULT);
     return l;
 }
 
@@ -111,13 +113,14 @@ void ui_Screen1_screen_init(void)
     lv_obj_clear_flag(ui_lambda_band, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(ui_lambda_band, LV_OBJ_FLAG_CLICKABLE);
 
-    /* Lambda symbol — TODO: replace with lv_image once lambda_64.c arrives */
+    /* Lambda symbol — TODO: replace with lv_image once lambda_64.c arrives;
+     * aerospace_56 only has digits/'.' so use default font for the "λ" glyph. */
     ui_img_lambda = lv_label_create(ui_Screen1);
     lv_obj_set_pos(ui_img_lambda, 116, 96);
-    lv_label_set_text(ui_img_lambda, "L");  /* lambda placeholder */
+    lv_label_set_text(ui_img_lambda, "\xce\xbb");  /* λ UTF-8 placeholder */
     lv_obj_set_style_text_color(ui_img_lambda, COLOR_WHITE,
                                 LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_img_lambda, &aerospace_56,
+    lv_obj_set_style_text_font(ui_img_lambda, lv_font_default(),
                                LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_label_lambda_val = lv_label_create(ui_Screen1);
@@ -168,7 +171,8 @@ void ui_Screen1_screen_init(void)
     lv_label_set_text(ui_no_ecu_label, "WAITING FOR ECU");
     lv_obj_set_style_text_color(ui_no_ecu_label, COLOR_WHITE,
                                 LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui_no_ecu_label, &aerospace_22,
+    /* TODO: replace with &racehead_22 once RaceHead font files arrive */
+    lv_obj_set_style_text_font(ui_no_ecu_label, lv_font_default(),
                                LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
