@@ -149,8 +149,9 @@ static void paint_timer_cb(lv_timer_t *t) {
     lv_bar_set_value(ui_bar_boost, boost_v, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(ui_bar_boost, boost_color(snap.boost),
                               LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    float boost_disp = snap.boost < 0.0f ? 0.0f : (snap.boost > 35.0f ? 35.0f : snap.boost);
     char boost_str[8];
-    snprintf(boost_str, sizeof(boost_str), "%.1f", snap.boost);
+    snprintf(boost_str, sizeof(boost_str), "%.1f", boost_disp);
     lv_label_set_text(ui_label_boost_val, boost_str);
 
     /* ECT */
@@ -171,8 +172,9 @@ static void paint_timer_cb(lv_timer_t *t) {
     lv_bar_set_value(ui_bar_ign, ign_v, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(ui_bar_ign, ign_color(snap.ign_adv),
                               LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    float ign_disp = snap.ign_adv < 0.0f ? 0.0f : (snap.ign_adv > 45.0f ? 45.0f : snap.ign_adv);
     char ign_str[8];
-    snprintf(ign_str, sizeof(ign_str), "%.1f", snap.ign_adv);
+    snprintf(ign_str, sizeof(ign_str), "%.1f", ign_disp);
     lv_label_set_text(ui_label_ign_val, ign_str);
 
     /* IAT */
