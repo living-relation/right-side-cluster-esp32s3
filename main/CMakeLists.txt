@@ -14,6 +14,7 @@ idf_component_register(
             "ui/screens/ui_Screen1.c"
             "ui/fonts/aerospace_22.c"
             "ui/fonts/aerospace_56.c"
+            "ui/fonts/racehead_22.c"
             "ui/images/ui_black_boot_png.c"
             "ui/boot/boot_screen.c"
 

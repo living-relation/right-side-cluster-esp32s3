@@ -19,6 +19,7 @@
 
 LV_FONT_DECLARE(aerospace_22);
 LV_FONT_DECLARE(aerospace_56);
+LV_FONT_DECLARE(racehead_22);
 
 lv_obj_t *ui_Screen1            = NULL;
 
@@ -74,9 +75,7 @@ static lv_obj_t *make_ch_label(lv_obj_t *parent, int x, int y, const char *text)
     lv_obj_set_pos(l, x, y);
     lv_label_set_text(l, text);
     lv_obj_set_style_text_color(l, COLOR_GREY, LV_PART_MAIN | LV_STATE_DEFAULT);
-    /* TODO: replace with &racehead_22 once RaceHead font files arrive;
-     * aerospace_22 only contains digits and '.', so alpha text is LV_FONT_DEFAULT here. */
-    lv_obj_set_style_text_font(l, lv_font_default(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(l, &racehead_22, LV_PART_MAIN | LV_STATE_DEFAULT);
     return l;
 }
 
@@ -171,8 +170,7 @@ void ui_Screen1_screen_init(void)
     lv_label_set_text(ui_no_ecu_label, "WAITING FOR ECU");
     lv_obj_set_style_text_color(ui_no_ecu_label, COLOR_WHITE,
                                 LV_PART_MAIN | LV_STATE_DEFAULT);
-    /* TODO: replace with &racehead_22 once RaceHead font files arrive */
-    lv_obj_set_style_text_font(ui_no_ecu_label, lv_font_default(),
+    lv_obj_set_style_text_font(ui_no_ecu_label, &racehead_22,
                                LV_PART_MAIN | LV_STATE_DEFAULT);
 }
 
