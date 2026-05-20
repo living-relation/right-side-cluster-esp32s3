@@ -137,7 +137,7 @@ void ui_Screen1_screen_init(void)
 
     /* ECT: range 100..300 °F */
     ui_bar_ect      = make_bar(ui_Screen1, BX, 268, BW, BH, 100, 300);
-    ui_label_ect_ch = make_ch_label(ui_Screen1, BX,        262, "ECT F");
+    ui_label_ect_ch = make_ch_label(ui_Screen1, BX,        262, "ECT \xc2\xb0" "F");
     ui_label_ect_val= make_val_label(ui_Screen1, BX + BW,  262);
 
     /* IGN: range 0..45 deg */
@@ -147,7 +147,7 @@ void ui_Screen1_screen_init(void)
 
     /* IAT: range 30..200 °F */
     ui_bar_iat      = make_bar(ui_Screen1, BX, 396, BW, BH, 30, 200);
-    ui_label_iat_ch = make_ch_label(ui_Screen1, BX,        390, "IAT F");
+    ui_label_iat_ch = make_ch_label(ui_Screen1, BX,        390, "IAT \xc2\xb0" "F");
     ui_label_iat_val= make_val_label(ui_Screen1, BX + BW,  390);
 
     /* No-ECU pill, centered, hidden by default */
