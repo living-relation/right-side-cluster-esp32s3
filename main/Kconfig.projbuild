@@ -1,4 +1,4 @@
-menu "TrackCluster — Left cluster pin map (Waveshare ESP32-S3-Touch-LCD-2.8C)"
+menu "TrackCluster — Right cluster pin map (Waveshare ESP32-S3-Touch-LCD-2.8C)"
 
     # ── Pin assignments verified against ESP32-S3-Touch-LCD-2.8C schematic ──
     #

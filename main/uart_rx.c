@@ -88,6 +88,8 @@ void uart_rx_task(void *arg)
         g_dash.iat          = snap.iat;
         g_dash.rpm          = snap.rpm;
         g_dash.flags        = snap.flags;
+        g_dash.menu_id      = snap.menu_id;
+        g_dash.menu_cursor  = snap.menu_cursor;
         g_dash.last_update_ms =
             (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
         portEXIT_CRITICAL(&g_dash_mux);

@@ -1,11 +1,11 @@
 /**
- * center-colors.h — TrackCluster design tokens for LVGL
+ * right-colors.h — TrackCluster design tokens for LVGL, right cluster.
  *
  * Mirrors `colors_and_type.css`. Self-contained per-cluster copy.
  */
 
-#ifndef CENTER_COLORS_H
-#define CENTER_COLORS_H
+#ifndef RIGHT_COLORS_H
+#define RIGHT_COLORS_H
 
 #include "lvgl.h"
 
@@ -128,4 +128,4 @@ static inline lv_color_t fuel_press_color(float psi) {
     return COLOR_CYAN;
 }
 
-#endif /* CENTER_COLORS_H */
+#endif /* RIGHT_COLORS_H */
