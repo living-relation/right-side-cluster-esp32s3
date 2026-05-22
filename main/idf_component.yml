@@ -1,3 +1,21 @@
+idf_component_manager_version: 2
+
 dependencies:
-  idf: '>=4.4'
-  lvgl/lvgl: ^8.2
+  idf:
+    version: ">=5.3"
+
+  lvgl/lvgl:
+    version: "~9.2.0"
+
+  espressif/esp_lvgl_port:
+    version: "~2.4"
+
+  # ST7701S RGB-565 parallel panel driver.
+  # The Waveshare ESP32-S3-Touch-LCD-2.8C uses ST7701S initialised over a
+  # 3-wire SPI-like interface (SDA=GPIO1, SCK=GPIO2, CS via TCA9554 expander).
+  espressif/esp_lcd_st7701:
+    version: "~1.2.0"
+
+  # GT911 capacitive touch driver (all three boards have GT911).
+  espressif/esp_lcd_touch_gt911:
+    version: "~1.1.0"

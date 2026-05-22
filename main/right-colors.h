@@ -1,11 +1,11 @@
 /**
- * right-colors.h — TrackCluster design tokens for LVGL
+ * center-colors.h — TrackCluster design tokens for LVGL
  *
  * Mirrors `colors_and_type.css`. Self-contained per-cluster copy.
  */
 
-#ifndef RIGHT_COLORS_H
-#define RIGHT_COLORS_H
+#ifndef CENTER_COLORS_H
+#define CENTER_COLORS_H
 
 #include "lvgl.h"
 
@@ -13,7 +13,6 @@
 #define COLOR_BG_PRIMARY      lv_color_hex(0x000000)
 #define COLOR_BG_SECONDARY    lv_color_hex(0x0A0A0A)
 #define COLOR_BG_CARD         lv_color_hex(0x111111)
-#define COLOR_BG_BEZEL        lv_color_hex(0x1A1A1A)
 
 /* ── Channel / state colors ────────────────────────────────────────────── */
 #define COLOR_GREEN           lv_color_hex(0x28FF00)   // normal, oil press normal
@@ -46,7 +45,7 @@
 
 /* ── Shift-LED color by index 0..9 with all-red hysteresis ──────────────── *
  * Caller updates `all_red` based on RPM crossings (>=7000 latch, <6500 release)
- * BEFORE calling this function. See `right-07-state-machines.md`.
+ * BEFORE calling this function. See `center-07-state-machines.md`.
  */
 static inline lv_color_t shift_led_color(int idx, bool all_red) {
     if (all_red) return COLOR_RED_LED;
@@ -129,4 +128,4 @@ static inline lv_color_t fuel_press_color(float psi) {
     return COLOR_CYAN;
 }
 
-#endif /* RIGHT_COLORS_H */
+#endif /* CENTER_COLORS_H */
