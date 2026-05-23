@@ -23,6 +23,11 @@ static void boot_done_cb(lv_timer_t *t)
     if (s_cb) s_cb();
 }
 
+static void opa_anim_cb(void *obj, int32_t val)
+{
+    lv_obj_set_style_image_opa((lv_obj_t *)obj, (lv_opa_t)val, 0);
+}
+
 void ui_boot_start(lv_obj_t *parent, ui_boot_done_cb_t on_done)
 {
     s_cb = on_done;
@@ -49,7 +54,7 @@ void ui_boot_start(lv_obj_t *parent, ui_boot_done_cb_t on_done)
     lv_anim_init(&a);
     lv_anim_set_var(&a, img);
     lv_anim_set_time(&a, 400);
-    lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_style_image_opa);
+    lv_anim_set_exec_cb(&a, opa_anim_cb);
     lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
     lv_anim_start(&a);

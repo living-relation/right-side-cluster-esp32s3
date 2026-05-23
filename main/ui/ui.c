@@ -25,6 +25,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
+#include "freertos/task.h"
 
 extern portMUX_TYPE g_dash_mux;
 static bool s_live = false;

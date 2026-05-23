@@ -1,5 +1,5 @@
 /**
- * bsp.c — Waveshare ESP32-S3-Touch-LCD-2.8C board support (left cluster).
+ * bsp.c — Waveshare ESP32-S3-Touch-LCD-2.8C board support (right cluster).
  *
  * Schematic-verified pin assignments:
  *
@@ -35,6 +35,15 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_rgb.h"
 #include "esp_lvgl_port.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#if __has_include("esp_lcd_st7701.h")
+#include "esp_lcd_st7701.h"
+#define BSP_HAS_ST7701 1
+#else
+#define BSP_HAS_ST7701 0
+#endif
 
 static const char *TAG = "bsp";
 
@@ -131,21 +140,6 @@ static esp_err_t panel_init(void)
     ESP_RETURN_ON_ERROR(tca9554_set_pin(TCA9554_P_LCD_RST, true),  TAG, "rst_hi");
     vTaskDelay(pdMS_TO_TICKS(120));
 
-    /* Panel SPI IO (uses GPIO bit-bang via esp_lcd_panel_io_spi) */
-    esp_lcd_panel_io_spi_config_t io_cfg = {
-        .cs_gpio_num  = -1,   /* CS driven via TCA9554 */
-        .dc_gpio_num  = -1,   /* 3-wire SPI: no DC pin */
-        .spi_clock_hz = 500000,
-        .spi_mode     = 0,
-        .pclk_hz      = 500000,
-        .trans_queue_depth = 10,
-        .lcd_cmd_bits   = 8,
-        .lcd_param_bits = 8,
-        .flags.dc_low_on_data = 0,
-        .flags.octal_mode     = 0,
-        .flags.sio_mode       = 1,   /* 3-wire: cmd+data on SDA */
-    };
-
     /* Assert CS before panel commands */
     ESP_RETURN_ON_ERROR(tca9554_set_pin(TCA9554_P_LCD_CS, false), TAG, "cs_lo");
 
@@ -189,9 +183,9 @@ static esp_err_t panel_init(void)
         .flags.fb_in_psram = true,
     };
 
-    /* Create ST7701S panel — the managed component wraps the RGB bus */
-#if __has_include("esp_lcd_st7701.h")
-    #include "esp_lcd_st7701.h"
+    /* Create ST7701S panel — the managed component wraps the RGB bus.
+     * s_panel_io is NULL: CS is toggled manually via TCA9554 above/below. */
+#if BSP_HAS_ST7701
     st7701_vendor_config_t vendor_cfg = {
         .rgb_config     = &rgb_cfg,
         .init_cmds      = NULL,    /* use component's default 480×480 init table */
@@ -218,7 +212,7 @@ static esp_err_t panel_init(void)
 /* ── Public API ──────────────────────────────────────────────────────── */
 esp_err_t bsp_init(void)
 {
-    ESP_LOGI(TAG, "TrackCluster Left BSP — ESP32-S3-Touch-LCD-2.8C");
+    ESP_LOGI(TAG, "TrackCluster Right BSP — ESP32-S3-Touch-LCD-2.8C");
     ESP_RETURN_ON_ERROR(i2c_and_expander_init(), TAG, "i2c");
     ESP_RETURN_ON_ERROR(panel_init(),            TAG, "panel");
     return ESP_OK;

@@ -23,6 +23,10 @@ void alarm_task(void *arg)
 
         uint16_t flags = s.flags;
 
+        /* Skip alarm evaluation until first UART frame received (avoids false
+         * boot alarms when g_dash is zero-initialised). */
+        if (s.last_update_ms == 0) goto skip_alarms;
+
         /* Lambda alarm */
         if (s.lambda < DASH_LAMBDA_RICH_ALARM || s.lambda >= DASH_LAMBDA_LEAN_ALARM)
             flags |= DASH_FLAG_LAMBDA_BAD;
@@ -45,6 +49,7 @@ void alarm_task(void *arg)
         g_dash.flags = flags;
         portEXIT_CRITICAL(&g_dash_mux);
 
+skip_alarms:
         vTaskDelayUntil(&wake, period);
     }
 }

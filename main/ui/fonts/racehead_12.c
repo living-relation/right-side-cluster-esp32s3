@@ -4,11 +4,7 @@
  * Opts: --font /tmp/ds8/downloads/right-cluster-esp32s3/fonts/RaceHead.ttf --size 12 --bpp 4 --format lvgl --range 0x20,0x25,0x41-0x5A,0xB0 -o /home/user/right-side-cluster-esp32s3/main/ui/fonts/racehead_12.c
  ******************************************************************************/
 
-#ifdef LV_LVGL_H_INCLUDE_SIMPLE
 #include "lvgl.h"
-#else
-#include "lvgl/lvgl.h"
-#endif
 
 #ifndef RACEHEAD_12
 #define RACEHEAD_12 1

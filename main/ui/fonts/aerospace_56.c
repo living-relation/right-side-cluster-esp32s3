@@ -4,11 +4,7 @@
  * Opts: --font /tmp/ds8/downloads/right-cluster-esp32s3/fonts/Aerospace.otf --size 56 --bpp 4 --format lvgl --range 0x30-0x39,0x2E -o /home/user/right-side-cluster-esp32s3/main/ui/fonts/aerospace_56.c
  ******************************************************************************/
 
-#ifdef LV_LVGL_H_INCLUDE_SIMPLE
 #include "lvgl.h"
-#else
-#include "lvgl/lvgl.h"
-#endif
 
 #ifndef AEROSPACE_56
 #define AEROSPACE_56 1

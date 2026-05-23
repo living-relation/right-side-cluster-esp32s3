@@ -10,6 +10,7 @@
 
 #include "dash_data.h"
 #include "sdkconfig.h"
+#include <inttypes.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
