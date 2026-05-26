@@ -170,7 +170,7 @@ static esp_err_t panel_init(void)
         .data_width = 16,
         .bits_per_pixel = 16,
         .num_fbs = 1,
-        .bounce_buffer_size_px = BSP_LCD_H_RES * 10,
+        .bounce_buffer_size_px = BSP_LCD_H_RES * 20,
         .hsync_gpio_num = BSP_HSYNC_GPIO,
         .vsync_gpio_num = BSP_VSYNC_GPIO,
         .de_gpio_num    = BSP_DE_GPIO,
