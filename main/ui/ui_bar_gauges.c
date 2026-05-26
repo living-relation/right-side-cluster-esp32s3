@@ -24,12 +24,56 @@ typedef struct {
 
 static bar_gauge_t s_gauges[4];
 
+/* Boost and IGN smoothing: stored ×10 as int for 0.1-unit precision */
+static int m_boost_current = 0;
+static int m_boost_target  = 0;
+static int m_ign_current   = 0;
+static int m_ign_target    = 0;
+
 static const struct { const char *name; float rmin, rmax; } GAUGE_DEFS[4] = {
     { "BOOST",  0.0f, 35.0f },
     { "ECT",  100.0f, 300.0f },
     { "IGN",    0.0f, 45.0f },
     { "IAT",   30.0f, 200.0f },
 };
+
+static void update_bar(bar_gauge_t *g, float val, lv_color_t col, const char *unit)
+{
+    float pct = (val - g->rmin) / (g->rmax - g->rmin);
+    if (pct < 0.0f) pct = 0.0f;
+    if (pct > 1.0f) pct = 1.0f;
+    lv_bar_set_value(g->bar, (int)(pct * 100), LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(g->bar, col, LV_PART_INDICATOR);
+    lv_label_set_text_fmt(g->lbl, "%s  %.1f %s", g->name, (double)val, unit);
+}
+
+static void boost_smooth_timer_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    if (m_boost_current == m_boost_target) return;
+    int delta = m_boost_target - m_boost_current;
+    int step  = 1;
+    if (delta > step || delta < -step)
+        m_boost_current += (delta > 0) ? step : -step;
+    else
+        m_boost_current = m_boost_target;
+    float v = (float)m_boost_current / 10.0f;
+    update_bar(&s_gauges[0], v, boost_color(v), "PSI");
+}
+
+static void ign_smooth_timer_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    if (m_ign_current == m_ign_target) return;
+    int delta = m_ign_target - m_ign_current;
+    int step  = 1;
+    if (delta > step || delta < -step)
+        m_ign_current += (delta > 0) ? step : -step;
+    else
+        m_ign_current = m_ign_target;
+    float v = (float)m_ign_current / 10.0f;
+    update_bar(&s_gauges[2], v, ign_color(v), "\xC2\xB0");
+}
 
 void ui_bar_gauges_create(lv_obj_t *parent)
 {
@@ -63,22 +107,15 @@ void ui_bar_gauges_create(lv_obj_t *parent)
         lv_obj_set_style_radius(s_gauges[i].bar, 3, LV_PART_MAIN);
         lv_obj_set_style_radius(s_gauges[i].bar, 3, LV_PART_INDICATOR);
     }
-}
 
-static void update_bar(bar_gauge_t *g, float val, lv_color_t col, const char *unit)
-{
-    float pct = (val - g->rmin) / (g->rmax - g->rmin);
-    if (pct < 0.0f) pct = 0.0f;
-    if (pct > 1.0f) pct = 1.0f;
-    lv_bar_set_value(g->bar, (int)(pct * 100), LV_ANIM_OFF);
-    lv_obj_set_style_bg_color(g->bar, col, LV_PART_INDICATOR);
-    lv_label_set_text_fmt(g->lbl, "%s  %.1f %s", g->name, (double)val, unit);
+    lv_timer_create(boost_smooth_timer_cb, 50, NULL);
+    lv_timer_create(ign_smooth_timer_cb,   50, NULL);
 }
 
 void ui_bar_gauges_update(const dash_data_t *d)
 {
-    update_bar(&s_gauges[0], d->boost,        boost_color(d->boost),        "PSI");
-    update_bar(&s_gauges[1], d->coolant_temp, ect_color(d->coolant_temp),   "°F");
-    update_bar(&s_gauges[2], d->ign_adv,      ign_color(d->ign_adv),        "°");
-    update_bar(&s_gauges[3], d->iat,          iat_color(d->iat),            "°F");
+    m_boost_target = (int)(d->boost   * 10.0f);
+    m_ign_target   = (int)(d->ign_adv * 10.0f);
+    update_bar(&s_gauges[1], d->coolant_temp, ect_color(d->coolant_temp),   "\xC2\xB0""F");
+    update_bar(&s_gauges[3], d->iat,          iat_color(d->iat),            "\xC2\xB0""F");
 }

@@ -24,6 +24,27 @@ LV_FONT_DECLARE(aerospace_56);
 static lv_obj_t *s_glyph = NULL;
 static lv_obj_t *s_value = NULL;
 
+/* Lambda stored ×1000 as int: 0.500 → 500, 2.000 → 2000 */
+static int m_lambda_current = 1000;
+static int m_lambda_target  = 1000;
+
+static void lambda_smooth_timer_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    if (m_lambda_current == m_lambda_target) return;
+    int delta = m_lambda_target - m_lambda_current;
+    int step  = 2;
+    if (delta > step || delta < -step)
+        m_lambda_current += (delta > 0) ? step : -step;
+    else
+        m_lambda_current = m_lambda_target;
+    float lam = (float)m_lambda_current / 1000.0f;
+    lv_color_t col = lambda_color(lam);
+    lv_label_set_text_fmt(s_value, "%.3f", (double)lam);
+    lv_obj_set_style_text_color(s_value, col, 0);
+    lv_obj_set_style_text_color(s_glyph, col, 0);
+}
+
 void ui_lambda_create(lv_obj_t *parent)
 {
     /* λ glyph — serif 64 px; stub uses montserrat until real font is converted */
@@ -41,12 +62,14 @@ void ui_lambda_create(lv_obj_t *parent)
     lv_obj_set_style_text_font(s_value, &aerospace_56, 0);
     lv_obj_set_style_text_align(s_value, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_value, LV_ALIGN_TOP_MID, 16, 96);
+
+    lv_timer_create(lambda_smooth_timer_cb, 50, NULL);
 }
 
 void ui_lambda_update(const dash_data_t *d)
 {
-    lv_color_t col = lambda_color(d->lambda);
-    lv_label_set_text_fmt(s_value, "%.3f", (double)d->lambda);
-    lv_obj_set_style_text_color(s_value, col, 0);
-    lv_obj_set_style_text_color(s_glyph, col, 0);
+    int target = (int)(d->lambda * 1000.0f);
+    if (target < 0)    target = 0;
+    if (target > 3000) target = 3000;
+    m_lambda_target = target;
 }
