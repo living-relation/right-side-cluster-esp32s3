@@ -231,7 +231,7 @@ lv_disp_t *bsp_display_start(void)
         .io_handle     = s_panel_io,
         .panel_handle  = s_panel,
         .buffer_size   = BSP_LCD_H_RES * 40,
-        .double_buffer = false,
+        .double_buffer = true,
         .hres          = BSP_LCD_H_RES,
         .vres          = BSP_LCD_V_RES,
         .monochrome    = false,
