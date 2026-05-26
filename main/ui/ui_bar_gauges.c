@@ -2,7 +2,7 @@
  * ui_bar_gauges.c — 4 horizontal bar gauges, right cluster.
  *
  * Each gauge: lv_bar, LV_ANIM_OFF, label+value ABOVE the bar (never inside).
- * Native 480×480. Bars stacked vertically in lower 3/4 of display.
+ * Native 480×480. Bars stacked vertically; stack starts at y=212, row_h=48.
  *
  * Channels and ranges:
  *   Boost   0–35 PSI     CYAN < 14 / ORANGE < 20 / RED ≥ 20
@@ -13,7 +13,7 @@
 #include "ui_bar_gauges.h"
 #include "right-colors.h"
 
-LV_FONT_DECLARE(racehead_12);
+LV_FONT_DECLARE(racehead_14);
 
 typedef struct {
     lv_obj_t   *bar;
@@ -77,10 +77,10 @@ static void ign_smooth_timer_cb(lv_timer_t *timer)
 
 void ui_bar_gauges_create(lv_obj_t *parent)
 {
-    int start_y = 240;
+    int start_y = 212;
     int bar_h   = 20;
     int bar_w   = 380;
-    int row_h   = 52;
+    int row_h   = 48;
 
     for (int i = 0; i < 4; i++) {
         s_gauges[i].name = GAUGE_DEFS[i].name;
@@ -93,7 +93,7 @@ void ui_bar_gauges_create(lv_obj_t *parent)
         s_gauges[i].lbl = lv_label_create(parent);
         lv_label_set_text_fmt(s_gauges[i].lbl, "%s  --", GAUGE_DEFS[i].name);
         lv_obj_set_style_text_color(s_gauges[i].lbl, COLOR_WHITE, 0);
-        lv_obj_set_style_text_font(s_gauges[i].lbl, &racehead_12, 0);
+        lv_obj_set_style_text_font(s_gauges[i].lbl, &racehead_14, 0);
         lv_obj_set_pos(s_gauges[i].lbl, (480 - bar_w) / 2, y);
 
         /* Bar */
