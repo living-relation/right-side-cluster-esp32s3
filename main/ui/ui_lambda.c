@@ -20,6 +20,7 @@
 #include "right-colors.h"
 
 LV_FONT_DECLARE(aerospace_56);
+LV_FONT_DECLARE(lambda_56);
 
 static lv_obj_t *s_glyph = NULL;
 static lv_obj_t *s_value = NULL;
@@ -55,13 +56,13 @@ void ui_lambda_create(lv_obj_t *parent)
     lv_obj_set_style_text_align(s_value, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_value, LV_ALIGN_TOP_MID, 16, 96);
 
-    /* λ glyph — Montserrat 48 px (λ U+03BB is not in the custom Racehead/Aerospace sets).
-     * Aligned to the vertical mid of the value label so both share the same visual
-     * centre-line regardless of font metrics. */
+    /* λ glyph — Arial Bold 56 px (λ U+03BB is not in the custom Racehead/Aerospace sets;
+     * Montserrat built-in tops at 48 px). Bold weight matches the visual mass of the
+     * adjacent Aerospace 56 px numeric value. */
     s_glyph = lv_label_create(parent);
     lv_label_set_text(s_glyph, "\xCE\xBB");   /* UTF-8 λ */
     lv_obj_set_style_text_color(s_glyph, COLOR_GREEN, 0);
-    lv_obj_set_style_text_font(s_glyph, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(s_glyph, &lambda_56, 0);
     lv_obj_set_style_text_align(s_glyph, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align_to(s_glyph, s_value, LV_ALIGN_OUT_LEFT_MID, -8, 0);
 
