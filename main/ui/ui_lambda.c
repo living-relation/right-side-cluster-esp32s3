@@ -3,8 +3,8 @@
  *
  * Layout per center-06-lvgl-widgets.md §"Lambda specifically":
  *   Native 480×480. Both labels TOP_MID anchored.
- *   λ glyph:  LV_ALIGN_TOP_MID, x_off = -124, y_off = 96  (serif 64 px)
  *   value:    LV_ALIGN_TOP_MID, x_off = +16,  y_off = 96  (Aerospace 56 px)
+ *   λ glyph:  lv_obj_align_to(glyph, value, LV_ALIGN_OUT_LEFT_MID, -8, 0)
  *   Both LV_TEXT_ALIGN_CENTER. Do NOT split at the decimal.
  *
  * Color per lambda_color() ramp (right-colors.h):
@@ -47,21 +47,23 @@ static void lambda_smooth_timer_cb(lv_timer_t *timer)
 
 void ui_lambda_create(lv_obj_t *parent)
 {
-    /* λ glyph — serif 64 px; stub uses montserrat until real font is converted */
-    s_glyph = lv_label_create(parent);
-    lv_label_set_text(s_glyph, "\xCE\xBB");   /* UTF-8 λ */
-    lv_obj_set_style_text_color(s_glyph, COLOR_GREEN, 0);
-    lv_obj_set_style_text_font(s_glyph, &lv_font_montserrat_48, 0);
-    lv_obj_set_style_text_align(s_glyph, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(s_glyph, LV_ALIGN_TOP_MID, -124, 96);
-
-    /* Numeric value — Aerospace 56 px */
+    /* Numeric value — Aerospace 56 px; anchored first so glyph can align to it */
     s_value = lv_label_create(parent);
     lv_label_set_text(s_value, "1.000");
     lv_obj_set_style_text_color(s_value, COLOR_GREEN, 0);
     lv_obj_set_style_text_font(s_value, &aerospace_56, 0);
     lv_obj_set_style_text_align(s_value, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_value, LV_ALIGN_TOP_MID, 16, 96);
+
+    /* λ glyph — Montserrat 48 px (λ U+03BB is not in the custom Racehead/Aerospace sets).
+     * Aligned to the vertical mid of the value label so both share the same visual
+     * centre-line regardless of font metrics. */
+    s_glyph = lv_label_create(parent);
+    lv_label_set_text(s_glyph, "\xCE\xBB");   /* UTF-8 λ */
+    lv_obj_set_style_text_color(s_glyph, COLOR_GREEN, 0);
+    lv_obj_set_style_text_font(s_glyph, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_align(s_glyph, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align_to(s_glyph, s_value, LV_ALIGN_OUT_LEFT_MID, -8, 0);
 
     lv_timer_create(lambda_smooth_timer_cb, 50, NULL);
 }
