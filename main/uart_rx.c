@@ -14,6 +14,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_err.h"
@@ -21,9 +22,11 @@
 static const char *TAG = "uart_rx";
 
 #define RX_UART_PORT  UART_NUM_1
-#define RX_BUF_SIZE   256
+#define RX_BUF_SIZE   512   /* 512 bytes ≈ 16 frames — was 256 */
 
 portMUX_TYPE g_dash_mux = portMUX_INITIALIZER_UNLOCKED;
+
+static QueueHandle_t s_uart_queue;
 
 static void uart_rx_init(void)
 {
@@ -37,10 +40,23 @@ static void uart_rx_init(void)
     };
     ESP_ERROR_CHECK(uart_param_config(RX_UART_PORT, &cfg));
     ESP_ERROR_CHECK(uart_set_pin(RX_UART_PORT,
-                                 CONFIG_TC_UART_TX_GPIO,
-                                 CONFIG_TC_UART_RX_GPIO,
+                                 UART_PIN_NO_CHANGE,        /* TX unused — RX only */
+                                 CONFIG_TC_UART_RX_GPIO,   /* RX ← center */
                                  UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-    ESP_ERROR_CHECK(uart_driver_install(RX_UART_PORT, RX_BUF_SIZE * 2, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_driver_install(RX_UART_PORT,
+                                        512,    /* rx ring buffer — 512 bytes, ~16 frames */
+                                        0,      /* tx buffer — not used */
+                                        8,      /* event queue depth */
+                                        &s_uart_queue,
+                                        0));
+    /* Fire RX FIFO ISR only when 32 bytes available (one full frame) or on timeout */
+    uart_intr_config_t intr_cfg = {
+        .intr_enable_mask        = UART_INTR_RXFIFO_FULL | UART_INTR_RXFIFO_TOUT,
+        .rxfifo_full_thresh      = UART_BRIDGE_FRAME_LEN,  /* 32 — one complete frame */
+        .rx_timeout_thresh       = 10,                      /* 10 char-times for partial frame */
+        .txfifo_empty_intr_thresh = 10,
+    };
+    ESP_ERROR_CHECK(uart_intr_config(RX_UART_PORT, &intr_cfg));
     ESP_LOGI(TAG, "UART1 ready — baud=%u RX=GPIO%d",
              UART_BRIDGE_BAUD, CONFIG_TC_UART_RX_GPIO);
 }
