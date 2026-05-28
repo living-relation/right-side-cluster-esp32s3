@@ -1,0 +1,14 @@
+WSL repo location notice for AI agents
+
+This Windows repository root is the original copy: C:\projects\right-side-cluster-esp32s3
+
+A faster native WSL copy exists here:
+  WSL/Linux path: /home/daniel/src/right-side-cluster-esp32s3
+  Windows UNC path: \\wsl.localhost\Ubuntu\home\daniel\src\right-side-cluster-esp32s3
+
+When performance matters for Git operations, prefer working from the WSL/Linux path above.
+
+Do not assume changes made in this Windows copy automatically sync to the WSL copy, or vice versa.
+Treat the WSL copy as a separate working tree unless the user explicitly says otherwise.
+
+Original Windows repo was intentionally left in place.
