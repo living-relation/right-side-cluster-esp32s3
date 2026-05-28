@@ -18,6 +18,7 @@
 #include "ui_lambda.h"
 #include "ui_bar_gauges.h"
 #include "ui_menu_popup.h"
+#include "ui_warning_overlay.h"
 #include "ui_no_data.h"
 #include "ui_boot.h"
 #include "dash_data.h"
@@ -49,6 +50,7 @@ void ui_paint_tick(lv_timer_t *t)
         ui_bar_gauges_update(&snap);
     }
     ui_menu_popup_update(&snap);
+    ui_warning_overlay_update(&snap);
 }
 
 void ui_on_boot_complete(void)
@@ -66,6 +68,7 @@ void ui_init(lv_disp_t *disp)
     ui_lambda_create(scr);
     ui_bar_gauges_create(scr);
     ui_menu_popup_create(scr);
+    ui_warning_overlay_create(scr);
     ui_no_data_create(scr);
     ui_boot_start(scr, ui_on_boot_complete);
 }

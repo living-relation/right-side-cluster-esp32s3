@@ -45,6 +45,32 @@ void alarm_task(void *arg)
         else
             flags &= ~DASH_FLAG_COOLANT_HOT;
 
+        /* Engine-protect flags — re-evaluated from forwarded ECU fields */
+        if (s.knock_level > DASH_KNOCK_THRESHOLD)
+            flags |= DASH_FLAG_KNOCK;
+        else
+            flags &= ~DASH_FLAG_KNOCK;
+        if (s.boost_cut)
+            flags |= DASH_FLAG_BOOST_CUT;
+        else
+            flags &= ~DASH_FLAG_BOOST_CUT;
+        if (s.fuel_cut)
+            flags |= DASH_FLAG_FUEL_CUT;
+        else
+            flags &= ~DASH_FLAG_FUEL_CUT;
+        if (s.ign_cut)
+            flags |= DASH_FLAG_IGN_CUT;
+        else
+            flags &= ~DASH_FLAG_IGN_CUT;
+        if (s.traction_cut)
+            flags |= DASH_FLAG_TRACTION_CUT;
+        else
+            flags &= ~DASH_FLAG_TRACTION_CUT;
+        if (s.rev_limit)
+            flags |= DASH_FLAG_REV_LIMIT;
+        else
+            flags &= ~DASH_FLAG_REV_LIMIT;
+
         portENTER_CRITICAL(&g_dash_mux);
         g_dash.flags = flags;
         portEXIT_CRITICAL(&g_dash_mux);

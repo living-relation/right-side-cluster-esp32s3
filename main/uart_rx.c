@@ -16,6 +16,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/uart.h"
+#include "hal/uart_ll.h"
 #include "esp_log.h"
 #include "esp_err.h"
 
@@ -107,6 +108,13 @@ void uart_rx_task(void *arg)
         g_dash.flags        = snap.flags;
         g_dash.menu_id      = snap.menu_id;
         g_dash.menu_cursor  = snap.menu_cursor;
+        g_dash.knock_level  = snap.knock_level;
+        g_dash.boost_cut    = snap.boost_cut;
+        g_dash.fuel_cut     = snap.fuel_cut;
+        g_dash.ign_cut      = snap.ign_cut;
+        g_dash.launch_ctrl  = snap.launch_ctrl;
+        g_dash.traction_cut = snap.traction_cut;
+        g_dash.rev_limit    = snap.rev_limit;
         g_dash.last_update_ms =
             (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
         portEXIT_CRITICAL(&g_dash_mux);

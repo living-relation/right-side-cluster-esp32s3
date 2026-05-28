@@ -94,7 +94,15 @@ void dash_encode_right(uint8_t out[UART_BRIDGE_FRAME_LEN], const dash_data_t *d,
     /* bytes 14-15: menu state (encoder popup forwarded to right display) */
     p[14] = d->menu_id;
     p[15] = d->menu_cursor;
-    /* p+16..25 reserved 0 */
+    /* bytes 16-17: engine-protect channels */
+    p[16] = (uint8_t)(d->knock_level * 10.0f);
+    p[17] = (uint8_t)((d->boost_cut    & 0x01u)
+                    | ((d->fuel_cut    & 0x01u) << 1)
+                    | ((d->ign_cut     & 0x01u) << 2)
+                    | ((d->launch_ctrl & 0x01u) << 3)
+                    | ((d->traction_cut& 0x01u) << 4)
+                    | ((d->rev_limit   & 0x01u) << 5));
+    /* p+18..25 reserved 0 */
 
     out[30] = dash_crc8(out + 1, 29);
     out[31] = UART_BRIDGE_EOF;
@@ -150,5 +158,12 @@ bool dash_decode_right(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, 
     d->flags        = get_u16(p + 12);
     d->menu_id      = p[14];
     d->menu_cursor  = p[15];
+    d->knock_level  = (float)p[16] / 10.0f;
+    d->boost_cut    = (p[17] >> 0) & 0x01u;
+    d->fuel_cut     = (p[17] >> 1) & 0x01u;
+    d->ign_cut      = (p[17] >> 2) & 0x01u;
+    d->launch_ctrl  = (p[17] >> 3) & 0x01u;
+    d->traction_cut = (p[17] >> 4) & 0x01u;
+    d->rev_limit    = (p[17] >> 5) & 0x01u;
     return true;
 }

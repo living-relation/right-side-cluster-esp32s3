@@ -33,10 +33,18 @@ extern "C" {
 #define DASH_FLAG_OIL_PRESS_LOW  (1u << 0)
 #define DASH_FLAG_FUEL_LOW       (1u << 1)
 #define DASH_FLAG_SHIFT          (1u << 2)
+/* bit 3 reserved */
 #define DASH_FLAG_COOLANT_HOT    (1u << 4)
 #define DASH_FLAG_OIL_TEMP_HOT   (1u << 5)
 #define DASH_FLAG_LAMBDA_BAD     (1u << 6)
 #define DASH_FLAG_OVERBOOST      (1u << 7)
+/* Engine-protect flag bits — set by alarm_task from CAN 0x3EC data */
+#define DASH_FLAG_KNOCK          (1u << 8)
+#define DASH_FLAG_BOOST_CUT      (1u << 9)
+#define DASH_FLAG_FUEL_CUT       (1u << 10)
+#define DASH_FLAG_IGN_CUT        (1u << 11)
+#define DASH_FLAG_TRACTION_CUT   (1u << 12)
+#define DASH_FLAG_REV_LIMIT      (1u << 13)
 
 /* ── Odometer mode enum ────────────────────────────────────────────────────── */
 typedef enum {
@@ -83,6 +91,15 @@ typedef struct {
      * The right display renders a popup overlay when menu_id != 0. */
     uint8_t  menu_id;      /* 0=hidden, 1=BOOST MAP, 2=TC SLIP ANGLE */
     uint8_t  menu_cursor;  /* currently highlighted item index (0-based) */
+
+    /* Engine-protect channels (decoded from CAN 0x3EC; forwarded in right UART frame) */
+    float    knock_level;  /* degrees retard being applied; 0.0 = no knock   */
+    uint8_t  boost_cut;    /* 1 = ECU actively cutting boost                 */
+    uint8_t  fuel_cut;     /* 1 = ECU actively cutting fuel                  */
+    uint8_t  ign_cut;      /* 1 = ECU actively cutting ignition              */
+    uint8_t  launch_ctrl;  /* 1 = launch control active (informational)      */
+    uint8_t  traction_cut; /* 1 = traction control cutting power             */
+    uint8_t  rev_limit;    /* 1 = rev limiter active                         */
 } dash_data_t;
 
 /* Global snapshot. Mutated under a critical section in the producer (center). */
@@ -168,6 +185,9 @@ bool dash_decode_right(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, 
 /* Fuel level */
 #define DASH_FUEL_LOW                15.0f
 #define DASH_FUEL_CAUTION            30.0f
+
+/* Knock */
+#define DASH_KNOCK_THRESHOLD         0.5f   /* degrees retard above which KNOCK flag fires */
 
 /* UART staleness (side displays) */
 #define DASH_STALE_MS                500u
