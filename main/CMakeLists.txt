@@ -14,6 +14,7 @@ idf_component_register(
         "ui/fonts/aerospace_56.c"
         "ui/fonts/lambda_56.c"
         "ui/fonts/racehead_14.c"
+        "ui/fonts/racehead_28.c"
         "ui/fonts/racehead_12.c"
         "ui/assets/toyota_logo.c"
 
