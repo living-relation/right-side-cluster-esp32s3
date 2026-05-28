@@ -54,11 +54,12 @@ void alarm_task(void *arg)
             flags |= DASH_FLAG_BOOST_CUT;
         else
             flags &= ~DASH_FLAG_BOOST_CUT;
-        if (s.fuel_cut)
+        /* Fuel/ign cut: only alarm when protecting the engine, not at rev limit */
+        if (s.fuel_cut_level > 0 && !s.rev_limit)
             flags |= DASH_FLAG_FUEL_CUT;
         else
             flags &= ~DASH_FLAG_FUEL_CUT;
-        if (s.ign_cut)
+        if (s.ign_cut_level > 0 && !s.rev_limit)
             flags |= DASH_FLAG_IGN_CUT;
         else
             flags &= ~DASH_FLAG_IGN_CUT;
@@ -70,6 +71,10 @@ void alarm_task(void *arg)
             flags |= DASH_FLAG_REV_LIMIT;
         else
             flags &= ~DASH_FLAG_REV_LIMIT;
+        if (s.launch_ctrl)
+            flags |= DASH_FLAG_LAUNCH;
+        else
+            flags &= ~DASH_FLAG_LAUNCH;
 
         portENTER_CRITICAL(&g_dash_mux);
         g_dash.flags = flags;

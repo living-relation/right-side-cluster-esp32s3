@@ -2,10 +2,13 @@
  * ui_warning_overlay.c — engine-protect critical warning overlay, right cluster.
  *
  * Activates on any of: DASH_FLAG_KNOCK, DASH_FLAG_BOOST_CUT, DASH_FLAG_FUEL_CUT,
- * DASH_FLAG_IGN_CUT, DASH_FLAG_TRACTION_CUT, DASH_FLAG_REV_LIMIT.
+ * DASH_FLAG_IGN_CUT, DASH_FLAG_TRACTION_CUT.
  *
  * Priority (highest shown when multiple flags active):
- *   KNOCK > BOOST_CUT > FUEL_CUT > IGN_CUT > TRACTION_CUT > REV_LIMIT
+ *   KNOCK > BOOST_CUT > FUEL_CUT > IGN_CUT > TRACTION_CUT
+ *
+ * DASH_FLAG_REV_LIMIT and DASH_FLAG_LAUNCH are informational only — right cluster
+ * shift LEDs handle rev limit; no overlay needed.
  *
  * Blinks at 2 Hz (250 ms on / 250 ms off) for peripheral-vision visibility.
  * Does NOT cover COOLANT_HOT / LAMBDA_BAD / OVERBOOST — those use gauge colors.
@@ -69,7 +72,6 @@ void ui_warning_overlay_update(const dash_data_t *d)
     else if (f & DASH_FLAG_FUEL_CUT)     { title = "FUEL CUT";  sub = "ECU ACTIVE";      }
     else if (f & DASH_FLAG_IGN_CUT)      { title = "IGN CUT";   sub = "ECU ACTIVE";      }
     else if (f & DASH_FLAG_TRACTION_CUT) { title = "TC ACTIVE"; sub = "TRACTION CUT";    }
-    else if (f & DASH_FLAG_REV_LIMIT)    { title = "REV LIMIT"; sub = "RPM LIMITED";      }
 
     if (!title) {
         lv_obj_add_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);

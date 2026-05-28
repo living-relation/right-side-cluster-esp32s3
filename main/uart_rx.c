@@ -108,13 +108,13 @@ void uart_rx_task(void *arg)
         g_dash.flags        = snap.flags;
         g_dash.menu_id      = snap.menu_id;
         g_dash.menu_cursor  = snap.menu_cursor;
-        g_dash.knock_level  = snap.knock_level;
-        g_dash.boost_cut    = snap.boost_cut;
-        g_dash.fuel_cut     = snap.fuel_cut;
-        g_dash.ign_cut      = snap.ign_cut;
-        g_dash.launch_ctrl  = snap.launch_ctrl;
-        g_dash.traction_cut = snap.traction_cut;
-        g_dash.rev_limit    = snap.rev_limit;
+        g_dash.knock_level    = snap.knock_level;
+        g_dash.fuel_cut_level = snap.fuel_cut_level;
+        g_dash.ign_cut_level  = snap.ign_cut_level;
+        g_dash.boost_cut      = snap.boost_cut;
+        g_dash.traction_cut   = snap.traction_cut;
+        g_dash.launch_ctrl    = snap.launch_ctrl;
+        g_dash.rev_limit      = snap.rev_limit;
         g_dash.last_update_ms =
             (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
         portEXIT_CRITICAL(&g_dash_mux);
