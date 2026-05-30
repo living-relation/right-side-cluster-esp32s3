@@ -14,7 +14,7 @@ dependencies:
   # The Waveshare ESP32-S3-Touch-LCD-2.8C uses ST7701S initialised over a
   # 3-wire SPI-like interface (SDA=GPIO1, SCK=GPIO2, CS via TCA9554 expander).
   espressif/esp_lcd_st7701:
-    version: ">=2.0.0"
+    version: "~1.1"
 
   # GT911 capacitive touch driver (all three boards have GT911).
   espressif/esp_lcd_touch_gt911:
