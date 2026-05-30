@@ -20,8 +20,8 @@
  *
  * Touch: GT911  INT=GPIO16  RST→TCA9554 P1
  *
- * Backlight: GPIO6 = BL_PWM — driven by external PWM controller.
- *            Firmware NEVER touches GPIO6.
+ * Backlight: GPIO6 = BL_PWM — LEDC channel 0, 8-bit, 1 kHz.
+ *            Call bsp_set_brightness(duty) to update; 255=day, 90≈35% night.
  */
 
 #include "bsp.h"
@@ -31,6 +31,7 @@
 #include "esp_check.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
+#include "driver/ledc.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_rgb.h"
@@ -46,6 +47,13 @@
 #endif
 
 static const char *TAG = "bsp";
+
+/* ── Backlight LEDC config ────────────────────────────────────────────── */
+#define BSP_BL_SPEED     LEDC_LOW_SPEED_MODE
+#define BSP_BL_TIMER     LEDC_TIMER_0
+#define BSP_BL_CHANNEL   LEDC_CHANNEL_0
+#define BSP_BL_FREQ_HZ   1000u
+#define BSP_BL_RES       LEDC_TIMER_8_BIT   /* duty 0-255 */
 
 /* ── GPIO constants (schematic-verified) ─────────────────────────────── */
 #define BSP_LCD_SDA_GPIO     1   /* panel SPI init data  */
@@ -209,10 +217,39 @@ static esp_err_t panel_init(void)
     return ESP_OK;
 }
 
+/* ── Backlight LEDC init (called once from bsp_init) ─────────────────── */
+static esp_err_t backlight_init(void)
+{
+    ledc_timer_config_t tmr = {
+        .speed_mode      = BSP_BL_SPEED,
+        .timer_num       = BSP_BL_TIMER,
+        .duty_resolution = BSP_BL_RES,
+        .freq_hz         = BSP_BL_FREQ_HZ,
+        .clk_cfg         = LEDC_AUTO_CLK,
+    };
+    ESP_RETURN_ON_ERROR(ledc_timer_config(&tmr), TAG, "bl_timer");
+
+    ledc_channel_config_t ch = {
+        .gpio_num   = BSP_BL_PWM_GPIO,
+        .speed_mode = BSP_BL_SPEED,
+        .channel    = BSP_BL_CHANNEL,
+        .timer_sel  = BSP_BL_TIMER,
+        .duty       = 255,   /* full brightness until first UART frame arrives */
+        .hpoint     = 0,
+        .intr_type  = LEDC_INTR_DISABLE,
+        .flags.output_invert = 0,
+    };
+    ESP_RETURN_ON_ERROR(ledc_channel_config(&ch), TAG, "bl_channel");
+    ESP_LOGI(TAG, "Backlight LEDC ready — GPIO%d, 8-bit, %u Hz",
+             BSP_BL_PWM_GPIO, BSP_BL_FREQ_HZ);
+    return ESP_OK;
+}
+
 /* ── Public API ──────────────────────────────────────────────────────── */
 esp_err_t bsp_init(void)
 {
     ESP_LOGI(TAG, "TrackCluster Right BSP — ESP32-S3-Touch-LCD-2.8C");
+    ESP_RETURN_ON_ERROR(backlight_init(),        TAG, "backlight");
     ESP_RETURN_ON_ERROR(i2c_and_expander_init(), TAG, "i2c");
     ESP_RETURN_ON_ERROR(panel_init(),            TAG, "panel");
     return ESP_OK;
@@ -245,3 +282,12 @@ lv_disp_t *bsp_display_start(void)
 
 bool bsp_lvgl_lock(uint32_t timeout_ms) { return lvgl_port_lock(timeout_ms); }
 void bsp_lvgl_unlock(void)              {        lvgl_port_unlock();          }
+
+void bsp_set_brightness(uint8_t duty)
+{
+    /* duty = 0 (off) … 255 (100 % day brightness).
+     * Called from uart_rx_task on every valid frame; skipping LVGL lock is
+     * fine — LEDC register writes are atomic single-register operations. */
+    ledc_set_duty(BSP_BL_SPEED, BSP_BL_CHANNEL, duty);
+    ledc_update_duty(BSP_BL_SPEED, BSP_BL_CHANNEL);
+}

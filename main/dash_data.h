@@ -101,6 +101,10 @@ typedef struct {
     uint8_t  traction_cut;    /* 1 = TC cut active (protect_flags bit 1)         */
     uint8_t  launch_ctrl;     /* 1 = launch control active (protect_flags bit 2) */
     uint8_t  rev_limit;       /* 1 = rev limiter active (protect_flags bit 3)    */
+
+    /* Backlight — decoded from reserved bytes in each UART frame.
+     * Raw 8-bit duty: 255 = 100 % day brightness, 90 ≈ 35 % night brightness. */
+    uint8_t  brightness;
 } dash_data_t;
 
 /* Global snapshot. Mutated under a critical section in the producer (center). */

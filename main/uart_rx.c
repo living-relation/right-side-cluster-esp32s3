@@ -9,6 +9,7 @@
  */
 
 #include "dash_data.h"
+#include "bsp.h"
 #include "sdkconfig.h"
 #include <inttypes.h>
 
@@ -115,8 +116,12 @@ void uart_rx_task(void *arg)
         g_dash.traction_cut   = snap.traction_cut;
         g_dash.launch_ctrl    = snap.launch_ctrl;
         g_dash.rev_limit      = snap.rev_limit;
+        g_dash.brightness     = snap.brightness;
         g_dash.last_update_ms =
             (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
         portEXIT_CRITICAL(&g_dash_mux);
+
+        /* Apply backlight — outside critical section; LEDC writes are atomic */
+        bsp_set_brightness(snap.brightness);
     }
 }

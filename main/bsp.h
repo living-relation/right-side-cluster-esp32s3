@@ -6,8 +6,9 @@
  * Panel init: SPI-like 3-wire over GPIO1 (SDA) / GPIO2 (SCK);
  *             CS and RST via TCA9554 I²C expander (addr 0x20).
  *
- * Backlight: GPIO6 (BL_PWM) is driven by an external PWM controller.
- * The firmware never touches GPIO6 or any backlight register.
+ * Backlight: GPIO6 (BL_PWM) — controlled by firmware LEDC (8-bit, 1 kHz).
+ *   255 = 100 % day brightness, 90 ≈ 35 % night brightness.
+ *   Call bsp_set_brightness() after each UART frame to track center's setting.
  */
 #ifndef BSP_H
 #define BSP_H
@@ -19,13 +20,16 @@
 extern "C" {
 #endif
 
-#define BSP_LCD_H_RES  480
-#define BSP_LCD_V_RES  480
+#define BSP_LCD_H_RES    480
+#define BSP_LCD_V_RES    480
+#define BSP_BL_PWM_GPIO    6   /* backlight PWM — LEDC channel 0, 8-bit, 1 kHz */
 
 esp_err_t  bsp_init(void);
 lv_disp_t *bsp_display_start(void);
 bool        bsp_lvgl_lock(uint32_t timeout_ms);
 void        bsp_lvgl_unlock(void);
+/** Set backlight brightness. duty = 0–255 (255 = full, 90 ≈ 35 % night). */
+void        bsp_set_brightness(uint8_t duty);
 
 #ifdef __cplusplus
 }

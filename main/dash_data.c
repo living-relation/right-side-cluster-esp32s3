@@ -102,7 +102,7 @@ void dash_encode_right(uint8_t out[UART_BRIDGE_FRAME_LEN], const dash_data_t *d,
                     | ((d->traction_cut & 0x01u) << 1)
                     | ((d->launch_ctrl  & 0x01u) << 2)
                     | ((d->rev_limit    & 0x01u) << 3));
-    /* p+20..25 reserved 0 */
+    /* p+20 = brightness byte (written by center); p+21..25 reserved 0 */
 
     out[30] = dash_crc8(out + 1, 29);
     out[31] = UART_BRIDGE_EOF;
@@ -165,5 +165,6 @@ bool dash_decode_right(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, 
     d->traction_cut   = (p[19] >> 1) & 0x01u;
     d->launch_ctrl    = (p[19] >> 2) & 0x01u;
     d->rev_limit      = (p[19] >> 3) & 0x01u;
+    d->brightness     = p[20];   /* brightness byte from center (absolute offset 24) */
     return true;
 }
