@@ -1,0 +1,5 @@
+{
+    "idf.espIdfPath": "C:\\esp\\v5.5.4\\esp-idf",
+    "idf.toolsPath": "C:\\Espressif",
+    "idf.flashType": "UART"
+}
