@@ -32,7 +32,9 @@ works standalone. Turn off later via *menuconfig → TrackCluster → Bench mode
 
 Recording of bench mode on this cluster (boot splash, lambda + bar gauges, menu/warning overlays):
 
-**[`docs/demos/Right_demo.mp4`](docs/demos/Right_demo.mp4)** — open locally after clone, or preview on GitHub by clicking the file. (Large file — stored with Git LFS.)
+**[`docs/demos/Right_demo.mp4`](docs/demos/Right_demo.mp4)** — open locally after clone, or preview on GitHub by clicking the file. (Large file — ~490 MB.)
+
+> **Git LFS:** Demo `.mp4` files are stored with Git LFS. Run `git lfs install` once **before** `git clone`, or `git lfs pull` after clone if the video is missing or only a few kilobytes.
 
 ### Key settings (already in `sdkconfig.defaults`)
 | Setting | Value |
