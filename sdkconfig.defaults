@@ -29,7 +29,17 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_LCD_RGB_ISR_IRAM_SAFE=y
 CONFIG_GDMA_CTRL_FUNC_IN_IRAM=y
 
-# ── BENCH MODE: ON ───────────────────────────────────────────────────────────
-# Standalone demo sweep — runs with NOTHING wired (no center/ECU/UART).
-# Flip to =n (or toggle in menuconfig → TrackCluster) for normal operation.
-CONFIG_TC_BENCH_MODE=y
+# ── LVGL settings (carried over from center bring-up) ─────────────────────────
+# Compressed-font decoder: the ui/fonts/*.c are exported bitmap_format=1
+# (LV_FONT_FMT_TXT_COMPRESSED) — without this every glyph renders as a tofu box.
+CONFIG_LV_USE_FONT_COMPRESSED=y
+# clib malloc → LVGL draws from the FreeRTOS heap (incl. PSRAM), so the lambda /
+# bar-gauge / warning draw tasks aren't capped by LVGL's static builtin pool.
+CONFIG_LV_USE_BUILTIN_MALLOC=n
+CONFIG_LV_USE_CLIB_MALLOC=y
+# 1 kHz tick + 8 ms refresh for smooth animation (default 100 Hz is too coarse).
+CONFIG_FREERTOS_HZ=1000
+CONFIG_LV_DEF_REFR_PERIOD=5
+
+# ── BENCH MODE: OFF (UART from center) ───────────────────────────────────────
+# CONFIG_TC_BENCH_MODE is not set

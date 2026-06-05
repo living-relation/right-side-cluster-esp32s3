@@ -8,6 +8,7 @@
 #define RIGHT_COLORS_H
 
 #include "lvgl.h"
+#include "dash_data.h"
 
 /* ── Backgrounds ───────────────────────────────────────────────────────── */
 #define COLOR_BG_PRIMARY      lv_color_hex(0x000000)
@@ -85,19 +86,17 @@ static inline lv_color_t lambda_color(float l) {
     return COLOR_RED_HOT;
 }
 
-/* ── Boost color ramp ──────────────────────────────────────────────────── */
+/* ── Boost bar fill (digital readout stays white; see ui_bar_gauges) ───── */
 static inline lv_color_t boost_color(float psi) {
-    if (psi < 14.0f) return COLOR_CYAN;
-    if (psi < 20.0f) return COLOR_ORANGE;
-    return COLOR_RED_HOT;
+    if (psi >= 25.0f) return COLOR_RED_HOT;
+    return COLOR_CYAN;
 }
 
-/* ── Coolant temp ramp ─────────────────────────────────────────────────── */
+/* ── Coolant temp ramp (motorsport ECT: normal / elevated / overheat) ───── */
 static inline lv_color_t ect_color(float f) {
-    if (f < 150.0f) return COLOR_CYAN;
-    if (f < 200.0f) return COLOR_WHITE;
-    if (f < 220.0f) return COLOR_ORANGE;
-    return COLOR_RED_HOT;
+    if (f < DASH_ECT_GREEN_MAX) return COLOR_CYAN;    /* < 200 °F warmed up, OK */
+    if (f < DASH_ECT_ORANGE_MAX) return COLOR_ORANGE; /* 200–230 °F hot */
+    return COLOR_RED_HOT;                             /* ≥ 230 °F critical */
 }
 
 /* ── IAT ramp (bar visible range 30..200 °F) ────────────────────────────── */

@@ -38,6 +38,15 @@ extern "C" {
 #define DASH_FLAG_LAMBDA_BAD     (1u << 6)
 #define DASH_FLAG_OVERBOOST      (1u << 7)
 
+/* ── Engine-protection warning bits (decoded from ECU status frame 0x3EE) ────
+ * These drive the RIGHT cluster warning overlay. Listed HIGH → LOW priority. */
+#define DASH_WARN_KNOCK      (1u << 0)
+#define DASH_WARN_IGN_CUT    (1u << 1)
+#define DASH_WARN_FUEL_CUT   (1u << 2)
+#define DASH_WARN_BOOST_CUT  (1u << 3)
+#define DASH_WARN_SENSOR     (1u << 4)
+#define DASH_WARN_THROTTLE   (1u << 5)
+
 /* ── Odometer mode enum ────────────────────────────────────────────────────── */
 typedef enum {
     DASH_ODO    = 0,
@@ -77,6 +86,7 @@ typedef struct {
 
     /* Status & freshness */
     uint16_t flags;
+    uint8_t  warn;          /* engine-protection warnings (DASH_WARN_* bits) */
     uint32_t last_update_ms;
 
     /* Input menu state — set by center, forwarded in the RIGHT UART frame.

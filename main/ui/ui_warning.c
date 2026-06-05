@@ -11,6 +11,7 @@
  * here — they are already communicated by gauge color.
  */
 #include "ui_warning.h"
+#include "ui_debug_log.h"
 #include "right-colors.h"
 
 LV_FONT_DECLARE(racehead_14);
@@ -31,6 +32,7 @@ static const struct { uint8_t bit; const char *name; } WARN_DEFS[] = {
 
 static lv_obj_t *s_box;                    /* compact red box, top of screen */
 static lv_obj_t *s_line[WARN_MAX_SHOWN];
+static uint8_t s_dbg_warn_shown;
 
 void ui_warning_create(lv_obj_t *parent)
 {
@@ -67,8 +69,15 @@ void ui_warning_update(const dash_data_t *d)
 {
     if (d->warn == 0) {
         lv_obj_add_flag(s_box, LV_OBJ_FLAG_HIDDEN);
+        s_dbg_warn_shown = 0;
         return;
     }
+    // #region agent log
+    if (!s_dbg_warn_shown) {
+        UI_DBG_LOG("D", "ui_warning.c:update", "warn_show", "\"warn\":%d", (int)d->warn);
+        s_dbg_warn_shown = 1;
+    }
+    // #endregion
 
     int shown = 0;
     for (int i = 0; i < WARN_DEFS_N && shown < WARN_MAX_SHOWN; i++) {

@@ -94,7 +94,8 @@ void dash_encode_right(uint8_t out[UART_BRIDGE_FRAME_LEN], const dash_data_t *d,
     /* bytes 14-15: menu state (encoder popup forwarded to right display) */
     p[14] = d->menu_id;
     p[15] = d->menu_cursor;
-    /* p+16..25 reserved 0 */
+    p[16] = d->warn;
+    /* p+17..25 reserved 0 */
 
     out[30] = dash_crc8(out + 1, 29);
     out[31] = UART_BRIDGE_EOF;
@@ -150,5 +151,6 @@ bool dash_decode_right(const uint8_t in[UART_BRIDGE_FRAME_LEN], dash_data_t *d, 
     d->flags        = get_u16(p + 12);
     d->menu_id      = p[14];
     d->menu_cursor  = p[15];
+    d->warn         = p[16];
     return true;
 }

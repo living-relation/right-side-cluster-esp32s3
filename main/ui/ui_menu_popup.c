@@ -19,11 +19,21 @@
  */
 
 #include "ui_menu_popup.h"
+#include "ui_debug_log.h"
 #include "right-colors.h"
+#include "sdkconfig.h"
 #include "../menu_strings.h"   /* shared with center inputs.c — keep byte-identical */
 
 LV_FONT_DECLARE(racehead_12);
 LV_FONT_DECLARE(racehead_14);
+/* Menu option strings include digits and ° — racehead_14/17 lack 0–9; use Montserrat for items. */
+#if CONFIG_LV_FONT_MONTSERRAT_14
+LV_FONT_DECLARE(lv_font_montserrat_14);
+#define MENU_ITEM_FONT (&lv_font_montserrat_14)
+#else
+LV_FONT_DECLARE(racehead_14);
+#define MENU_ITEM_FONT (&racehead_14)
+#endif
 
 /* ── Widget handles ──────────────────────────────────────────────────── */
 static lv_obj_t *s_overlay   = NULL;   /* full-screen dim layer */
@@ -36,6 +46,7 @@ static lv_obj_t *s_footer    = NULL;
 
 static uint8_t s_last_menu_id     = 0xFF;
 static uint8_t s_last_menu_cursor = 0xFF;
+static uint8_t s_dbg_menu_shown;
 
 /* ── Create ──────────────────────────────────────────────────────────── */
 void ui_menu_popup_create(lv_obj_t *parent)
@@ -78,7 +89,7 @@ void ui_menu_popup_create(lv_obj_t *parent)
     lv_label_set_text(s_item_prev, "");
     lv_obj_set_style_text_color(s_item_prev, COLOR_WHITE, 0);
     lv_obj_set_style_text_opa(s_item_prev, LV_OPA_40, 0);
-    lv_obj_set_style_text_font(s_item_prev, &racehead_14, 0);
+    lv_obj_set_style_text_font(s_item_prev, MENU_ITEM_FONT, 0);
     lv_obj_align(s_item_prev, LV_ALIGN_TOP_MID, 0, 28);
 
     /* Current (highlighted) item — bright, with accent background strip */
@@ -96,7 +107,7 @@ void ui_menu_popup_create(lv_obj_t *parent)
     s_item_cur = lv_label_create(highlight);
     lv_label_set_text(s_item_cur, "");
     lv_obj_set_style_text_color(s_item_cur, COLOR_WHITE, 0);
-    lv_obj_set_style_text_font(s_item_cur, &racehead_14, 0);
+    lv_obj_set_style_text_font(s_item_cur, MENU_ITEM_FONT, 0);
     lv_obj_center(s_item_cur);
 
     /* Item below cursor (dim) */
@@ -104,7 +115,7 @@ void ui_menu_popup_create(lv_obj_t *parent)
     lv_label_set_text(s_item_next, "");
     lv_obj_set_style_text_color(s_item_next, COLOR_WHITE, 0);
     lv_obj_set_style_text_opa(s_item_next, LV_OPA_40, 0);
-    lv_obj_set_style_text_font(s_item_next, &racehead_14, 0);
+    lv_obj_set_style_text_font(s_item_next, MENU_ITEM_FONT, 0);
     lv_obj_align(s_item_next, LV_ALIGN_BOTTOM_MID, 0, -28);
 
     /* Footer */
@@ -116,16 +127,39 @@ void ui_menu_popup_create(lv_obj_t *parent)
     lv_obj_align(s_footer, LV_ALIGN_BOTTOM_MID, 0, -2);
 }
 
-/* ── Update (called from ui_paint_tick every 33 ms) ──────────────────── */
+void ui_menu_popup_reset_cache(void)
+{
+    s_last_menu_id     = 0xFF;
+    s_last_menu_cursor = 0xFF;
+    s_dbg_menu_shown   = 0;
+}
+
+/* ── Update (called from ui_paint_tick) ─────────────────────────────── */
 void ui_menu_popup_update(const dash_data_t *d)
 {
     bool visible = (d->menu_id != DASH_MENU_NONE);
 
     /* Toggle overlay visibility */
     bool currently_hidden = lv_obj_has_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
-    if (visible && currently_hidden)  lv_obj_clear_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
-    if (!visible && !currently_hidden) lv_obj_add_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
-    if (!visible) { s_last_menu_id = 0xFF; return; }
+    if (visible && currently_hidden) {
+        lv_obj_clear_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(s_overlay);
+    }
+    if (!visible && !currently_hidden) {
+        lv_obj_add_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (!visible) {
+        s_last_menu_id = 0xFF;
+        return;
+    }
+    lv_obj_move_foreground(s_overlay);
+    // #region agent log
+    if (!s_dbg_menu_shown || s_last_menu_id != d->menu_id) {
+        UI_DBG_LOG("E", "ui_menu_popup.c:update", "menu_show",
+                   "\"menu\":%d,\"cursor\":%d", (int)d->menu_id, (int)d->menu_cursor);
+        s_dbg_menu_shown = 1;
+    }
+    // #endregion
 
     /* Only re-render if state changed */
     if (d->menu_id == s_last_menu_id && d->menu_cursor == s_last_menu_cursor) return;
@@ -151,4 +185,8 @@ void ui_menu_popup_update(const dash_data_t *d)
     lv_label_set_text(s_item_cur,  items[cur]);
     lv_label_set_text(s_item_prev, cur > 0          ? items[cur - 1] : "");
     lv_label_set_text(s_item_next, cur < count - 1  ? items[cur + 1] : "");
+    // #region agent log
+    UI_DBG_LOG("F", "ui_menu_popup.c:update", "menu_text",
+               "\"cur\":%d,\"txt\":\"%s\"", cur, items[cur]);
+    // #endregion
 }

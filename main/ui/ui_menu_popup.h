@@ -17,6 +17,7 @@ extern "C" {
 
 void ui_menu_popup_create(lv_obj_t *parent);
 void ui_menu_popup_update(const dash_data_t *d);
+void ui_menu_popup_reset_cache(void);
 
 #ifdef __cplusplus
 }
