@@ -36,17 +36,19 @@ void ui_lambda_create(lv_obj_t *parent)
     lv_image_set_src(s_glyph, &lambda_64);
     /* Uniform scale (LV_SCALE_NONE=256); 336 ≈ 131 % for a bolder λ asset */
     lv_image_set_scale(s_glyph, 336);
-    lv_obj_set_style_image_recolor(s_glyph, COLOR_GREEN, 0);
+    lv_obj_set_style_image_recolor(s_glyph, COLOR_RED_HOT, 0);
     lv_obj_set_style_image_recolor_opa(s_glyph, LV_OPA_COVER, 0);
     lv_obj_align(s_glyph, LV_ALIGN_TOP_MID, -120, 73);
 
-    /* Numeric value — Aerospace 56 px */
+    /* Numeric value — Aerospace 56 px (0 = no UART data yet, matches first live paint) */
     s_value = lv_label_create(parent);
-    lv_label_set_text(s_value, "1.000");
-    lv_obj_set_style_text_color(s_value, COLOR_GREEN, 0);
+    lv_label_set_text(s_value, "0.000");
+    lv_obj_set_style_text_color(s_value, COLOR_RED_HOT, 0);
     lv_obj_set_style_text_font(s_value, &aerospace_56, 0);
     lv_obj_set_style_text_align(s_value, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_value, LV_ALIGN_TOP_MID, 16, 96);
+    strncpy(s_lambda_text, "0.000", sizeof(s_lambda_text) - 1);
+    s_lambda_text[sizeof(s_lambda_text) - 1] = '\0';
 }
 
 void ui_lambda_update(const dash_data_t *d)

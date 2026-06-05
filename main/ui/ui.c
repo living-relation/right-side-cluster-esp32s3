@@ -33,6 +33,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
 #include "freertos/task.h"
+#include "esp_timer.h"
 
 extern portMUX_TYPE g_dash_mux;
 static lv_obj_t *s_screen = NULL;
@@ -46,6 +47,7 @@ static bool s_live = false;
 static bool     s_boost_bg_lat;
 static bool     s_boost_bg_flash_on;
 static uint32_t s_boost_bg_flash_ms;
+static bool     s_dbg_first_paint;
 
 #if CONFIG_TC_BENCH_MODE
 #define UI_PAINT_TICK_MS   50U
@@ -90,6 +92,14 @@ void ui_paint_tick(lv_timer_t *t)
 {
     if (!s_live) return;
 
+    // #region agent log
+    if (!s_dbg_first_paint) {
+        s_dbg_first_paint = true;
+        UI_DBG_LOG("J3", "ui.c:ui_paint_tick", "first_paint",
+                   "\"t_ms\":%lld", (long long)(esp_timer_get_time() / 1000LL));
+    }
+    // #endregion
+
     dash_data_t snap;
     portENTER_CRITICAL(&g_dash_mux);
     snap = *(const dash_data_t *)&g_dash;
@@ -103,21 +113,54 @@ void ui_paint_tick(lv_timer_t *t)
     ui_warning_update(&snap);
 }
 
+static void ui_prime_snapshot(void)
+{
+    dash_data_t snap;
+    portENTER_CRITICAL(&g_dash_mux);
+    snap = *(const dash_data_t *)&g_dash;
+    portEXIT_CRITICAL(&g_dash_mux);
+
+    ui_lambda_update(&snap);
+    ui_bar_gauges_update(&snap);
+    ui_menu_popup_update(&snap);
+    ui_warning_update(&snap);
+
+    if (bsp_lvgl_lock(0)) {
+        lv_refr_now(NULL);
+        bsp_lvgl_unlock();
+    }
+}
+
 static void ui_live_start_cb(lv_timer_t *t)
 {
     lv_timer_delete(t);
+    // #region agent log
+    UI_DBG_LOG("J3", "ui.c:ui_live_start", "live_start",
+               "\"t_ms\":%lld", (long long)(esp_timer_get_time() / 1000LL));
+    // #endregion
     s_live = true;
     lv_timer_create(ui_paint_tick, UI_PAINT_TICK_MS, NULL);
 }
 
 void ui_on_boot_complete(void)
 {
+    /* Prime widgets from g_dash before live tick so splash handoff matches idle UART state. */
+    ui_prime_snapshot();
     // #region agent log
-    UI_DBG_LOG("B", "ui.c:ui_on_boot_complete", "boot_done", "\"bench\":%d", (int)CONFIG_TC_BENCH_MODE);
+#if CONFIG_TC_BENCH_MODE
+    UI_DBG_LOG("J2", "ui.c:ui_on_boot_complete", "boot_done",
+               "\"bench\":%d,\"t_ms\":%lld", 1,
+               (long long)(esp_timer_get_time() / 1000LL));
+#else
+    UI_DBG_LOG("J2", "ui.c:ui_on_boot_complete", "boot_done",
+               "\"bench\":%d,\"t_ms\":%lld", 0,
+               (long long)(esp_timer_get_time() / 1000LL));
+#endif
     // #endregion
 #if CONFIG_TC_BENCH_MODE
     bench_demo_start();
 #endif
+    /* Let splash teardown finish before fast RGB updates (reduces tear). */
     lv_timer_t *t = lv_timer_create(ui_live_start_cb, BOOT_LIVE_SETTLE_MS, NULL);
     lv_timer_set_repeat_count(t, 1);
 }
