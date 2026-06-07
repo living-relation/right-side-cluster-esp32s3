@@ -1,8 +1,8 @@
 /**
  * bsp.c — Waveshare ESP32-S3-Touch-LCD-2.8C board support (right cluster).
  *
- * Display path aligned with left cluster: ST7701 waveshare init, RGB bounce buffer,
- * lvgl_port RGB + double-buffered partial draw (80 lines), 5 ms LVGL port tick.
+ * Display path matches left cluster: ST7701 waveshare init, RGB bounce buffer,
+ * lvgl_port partial draw (80-line buffer), bb_mode, 5 ms LVGL port tick.
  */
 
 #include "bsp.h"
@@ -356,7 +356,7 @@ lv_disp_t *bsp_display_start(void)
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle     = NULL,
         .panel_handle  = s_panel,
-        .buffer_size   = BSP_LCD_H_RES * BSP_LCD_V_RES,
+        .buffer_size   = BSP_LCD_H_RES * 80,
         .double_buffer = true,
         .hres          = BSP_LCD_H_RES,
         .vres          = BSP_LCD_V_RES,
@@ -368,12 +368,10 @@ lv_disp_t *bsp_display_start(void)
             .buff_spiram = true,
             .swap_bytes = false,
             .direct_mode = false,
-            .full_refresh = true,
         },
     };
     const lvgl_port_display_rgb_cfg_t rgb_cfg = {
-        /* Full-frame + vsync: eliminates RGB partial-draw ghosting/flicker */
-        .flags = { .bb_mode = 1, .avoid_tearing = 1 },
+        .flags = { .bb_mode = 1, .avoid_tearing = 0 },
     };
     s_disp = lvgl_port_add_disp_rgb(&disp_cfg, &rgb_cfg);
 

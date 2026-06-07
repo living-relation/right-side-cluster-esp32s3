@@ -37,6 +37,7 @@
 
 extern portMUX_TYPE g_dash_mux;
 static lv_obj_t *s_screen = NULL;
+static lv_obj_t *s_main_layer = NULL;
 static bool s_live = false;
 
 /* Overboost full-screen flash: latch ≥28 PSI, release <25 PSI (filtered boost). */
@@ -124,43 +125,35 @@ static void ui_prime_snapshot(void)
     ui_bar_gauges_update(&snap);
     ui_menu_popup_update(&snap);
     ui_warning_update(&snap);
-
-    if (bsp_lvgl_lock(0)) {
-        lv_refr_now(NULL);
-        bsp_lvgl_unlock();
-    }
 }
 
 static void ui_live_start_cb(lv_timer_t *t)
 {
     lv_timer_delete(t);
-    // #region agent log
-    UI_DBG_LOG("J3", "ui.c:ui_live_start", "live_start",
-               "\"t_ms\":%lld", (long long)(esp_timer_get_time() / 1000LL));
-    // #endregion
     s_live = true;
     lv_timer_create(ui_paint_tick, UI_PAINT_TICK_MS, NULL);
 }
 
+static void ui_boot_handoff(void)
+{
+    if (!bsp_lvgl_lock(portMAX_DELAY)) {
+        return;
+    }
+    if (s_main_layer) {
+        lv_obj_remove_flag(s_main_layer, LV_OBJ_FLAG_HIDDEN);
+    }
+    ui_prime_snapshot();
+    lv_refr_now(NULL);
+    lv_refr_now(NULL);
+    bsp_lvgl_unlock();
+}
+
 void ui_on_boot_complete(void)
 {
-    /* Prime widgets from g_dash before live tick so splash handoff matches idle UART state. */
-    ui_prime_snapshot();
-    // #region agent log
-#if CONFIG_TC_BENCH_MODE
-    UI_DBG_LOG("J2", "ui.c:ui_on_boot_complete", "boot_done",
-               "\"bench\":%d,\"t_ms\":%lld", 1,
-               (long long)(esp_timer_get_time() / 1000LL));
-#else
-    UI_DBG_LOG("J2", "ui.c:ui_on_boot_complete", "boot_done",
-               "\"bench\":%d,\"t_ms\":%lld", 0,
-               (long long)(esp_timer_get_time() / 1000LL));
-#endif
-    // #endregion
 #if CONFIG_TC_BENCH_MODE
     bench_demo_start();
 #endif
-    /* Let splash teardown finish before fast RGB updates (reduces tear). */
+    /* Let splash teardown finish before fast bar updates (reduces RGB tear). */
     lv_timer_t *t = lv_timer_create(ui_live_start_cb, BOOT_LIVE_SETTLE_MS, NULL);
     lv_timer_set_repeat_count(t, 1);
 }
@@ -171,11 +164,20 @@ void ui_init(lv_disp_t *disp)
     lv_obj_set_style_bg_color(s_screen, COLOR_BG_PRIMARY, 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
-    ui_lambda_create(s_screen);
-    ui_bar_gauges_create(s_screen);
-    ui_menu_popup_create(s_screen);
-    ui_warning_create(s_screen);
-    ui_boot_start(s_screen, ui_on_boot_complete);
+    s_main_layer = lv_obj_create(s_screen);
+    lv_obj_set_size(s_main_layer, BSP_LCD_H_RES, BSP_LCD_V_RES);
+    lv_obj_center(s_main_layer);
+    lv_obj_set_style_bg_opa(s_main_layer, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(s_main_layer, 0, 0);
+    lv_obj_set_style_radius(s_main_layer, 0, 0);
+    lv_obj_clear_flag(s_main_layer, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(s_main_layer, LV_OBJ_FLAG_HIDDEN);
+
+    ui_lambda_create(s_main_layer);
+    ui_bar_gauges_create(s_main_layer);
+    ui_menu_popup_create(s_main_layer);
+    ui_warning_create(s_main_layer);
+    ui_boot_start(s_screen, ui_on_boot_complete, ui_boot_handoff);
 
     if (bsp_lvgl_lock(portMAX_DELAY)) {
         lv_refr_now(NULL);

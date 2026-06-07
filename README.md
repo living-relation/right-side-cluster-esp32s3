@@ -19,14 +19,18 @@ Full beginner walkthrough: **[`SETUP_BEFORE_YOU_BUILD.txt`](SETUP_BEFORE_YOU_BUI
 
 Short version:
 1. Install **VS Code** + the **Espressif IDF** extension; run
-   *Command Palette → “ESP-IDF: Configure ESP-IDF Extension” → Express → 5.5.4*.
+   *Command Palette → “ESP-IDF: Configure ESP-IDF Extension” → Express → 5.4.2*.
 2. **File → Open Folder →** this repo.
 3. Set target = **esp32s3** (chip icon, bottom bar).
 4. Plug the board in via USB-C and pick the **COM port** on the bottom bar.
 5. **Build → Flash → Monitor** (flame icon).
 
-Ships in **BENCH MODE** — runs a self-test demo with nothing wired up so you can confirm the screen
-works standalone. Turn off later via *menuconfig → TrackCluster → Bench mode*.
+Ships with **bench mode OFF** (live UART from center). For a standalone bench sweep, turn on via
+*menuconfig → TrackCluster → Bench mode* and reflash. Morning flash steps: **`FLASH_READINESS.md`**.
+
+**Already flashed?** Wiring **5 V**, **GND**, and **GPIO44 ← center GPIO21** does not require another
+flash unless you pull new firmware from git. Boot splash uses a tear-free handoff (see
+`FLASH_READINESS.md`).
 
 ### Bench demo video
 
@@ -42,8 +46,8 @@ Recording of bench mode on this cluster (boot splash, lambda + bar gauges, menu/
 | Target | esp32s3 |
 | Flash size | 16 MB (confirm; set 8 MB if your board is smaller) |
 | PSRAM | Octal, 80 MHz (**required** — the framebuffer lives here) |
-| Bench mode | ON (self-test) |
-| ESP-IDF | 5.5.4 |
+| Bench mode | OFF (live) |
+| ESP-IDF | 5.4.2 |
 
 No baud rate to set — see the setup guide.
 
