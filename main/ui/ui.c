@@ -106,6 +106,12 @@ void ui_paint_tick(lv_timer_t *t)
     snap = *(const dash_data_t *)&g_dash;
     portEXIT_CRITICAL(&g_dash_mux);
 
+    static uint8_t s_last_brightness = 100;   /* matches startup default */
+    if (snap.brightness != s_last_brightness) {
+        s_last_brightness = snap.brightness;
+        bsp_backlight_set_percent(snap.brightness);
+    }
+
     /* Always render the latest data (0 when nothing is connected — no overlay). */
     ui_lambda_update(&snap);
     ui_bar_gauges_update(&snap);
