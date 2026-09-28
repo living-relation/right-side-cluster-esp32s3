@@ -1,4 +1,5 @@
 # Right cluster — flash readiness
+<!-- Revised 2026-09-27 · docs/center-tx-sot-ref · Cowork: center TX pin replaced with pointer to center PINOUT.md · PR# n/a -->
 
 **Source tree (flash from here):** `C:\projects\right-side-cluster-esp32s3`  
 **Git HEAD:** run `git rev-parse --short HEAD` after pull  
@@ -50,7 +51,8 @@ Plug **only** the right cluster via USB-C.
 ## After you wire the car — reflash?
 
 **No**, if this board already has the latest **bench-off** firmware. Connect **5 V**, **GND**, and
-**GPIO44 ← center GPIO21** only. Reflash when you update firmware from git.
+**GPIO44 (this board's UART RX) ← center UART TX** only (center pin: see center `PINOUT.md`).
+Reflash when you update firmware from git.$([Environment]::NewLine)<!-- SOT-REF: repo=living-relation/center-cluster-esp32-p4 path=PINOUT.md anchor=Wired connections summary -->
 
 ## Not in this firmware yet
 
