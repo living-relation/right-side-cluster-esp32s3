@@ -1,25 +1,8 @@
 #include "ui_numeric.h"
 #include "lvgl.h"
 
-static int frac1(float v)
-{
-    float w = (float)(int)v;
-    int f = (int)((v - w) * 10.0f + 0.5f);
-    if (f >= 10) {
-        return 0;
-    }
-    return f;
-}
-
-static int frac3(float v)
-{
-    float w = (float)(int)v;
-    int f = (int)((v - w) * 1000.0f + 0.5f);
-    if (f >= 1000) {
-        return 0;
-    }
-    return f;
-}
+/* Round once to an integer count of the shown unit, then split it, so a
+ * carry (0.9996 -> 1.000, 12.97 -> 13.0) reaches the whole part. */
 
 void ui_fmt_1dp(char *buf, size_t buf_len, float v)
 {
@@ -30,16 +13,11 @@ void ui_fmt_1dp(char *buf, size_t buf_len, float v)
     if (neg) {
         v = -v;
     }
-    int w = (int)v;
-    int f = frac1(v);
-    if (f >= 10) {
-        w++;
-        f -= 10;
-    }
-    if (neg) {
-        lv_snprintf(buf, buf_len, "-%d.%d", w, f);
+    int t = (int)(v * 10.0f + 0.5f);
+    if (neg && t > 0) {
+        lv_snprintf(buf, buf_len, "-%d.%d", t / 10, t % 10);
     } else {
-        lv_snprintf(buf, buf_len, "%d.%d", w, f);
+        lv_snprintf(buf, buf_len, "%d.%d", t / 10, t % 10);
     }
 }
 
@@ -51,7 +29,6 @@ void ui_fmt_3dp(char *buf, size_t buf_len, float v)
     if (v < 0.0f) {
         v = 0.0f;
     }
-    int w = (int)v;
-    int f = frac3(v);
-    lv_snprintf(buf, buf_len, "%d.%03d", w, f);
+    int t = (int)(v * 1000.0f + 0.5f);
+    lv_snprintf(buf, buf_len, "%d.%03d", t / 1000, t % 1000);
 }
