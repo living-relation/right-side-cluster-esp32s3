@@ -1,7 +1,7 @@
 # Right cluster — flash readiness
 <!-- Revised 2026-09-27 · docs/center-tx-sot-ref · Cowork: center TX pin replaced with pointer to center PINOUT.md · PR# n/a -->
 
-**Source tree (flash from here):** `C:\projects\right-side-cluster-esp32s3`  
+**Source tree (flash from here):** `C:\projects\active\right-side-cluster-esp32s3`  
 **Git HEAD:** run `git rev-parse --short HEAD` after pull  
 **Mode:** bench **OFF** — live UART from center (`# CONFIG_TC_BENCH_MODE is not set`)
 
@@ -16,7 +16,7 @@ Plug **only** the right cluster via USB-C.
 3. **Target** — `esp32s3`
 4. **Build:**
    ```powershell
-   cd C:\projects\right-side-cluster-esp32s3
+   cd C:\projects\active\right-side-cluster-esp32s3
    .\scripts\prepare_flash.ps1
    ```
 5. **Flash:**
